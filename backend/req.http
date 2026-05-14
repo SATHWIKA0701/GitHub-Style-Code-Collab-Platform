@@ -1,0 +1,16 @@
+GET http://localhost:3000/
+
+### NOTE: Most protected endpoints require the HTTP-only cookie `token` (set by `/auth/login`).
+
+###get activity
+
+GET http://localhost:3000/api/repos/69b9083939f8f11a6c8cd7dc/activity
+### get notifications
+GET http://localhost:3000/api/notifications
+
+###mark notifications as read
+###
+PATCH http://localhost:3000/api/notifications/69b8e81507e1b4330b733322/read
+Content-Type: application/json
+{}
+
