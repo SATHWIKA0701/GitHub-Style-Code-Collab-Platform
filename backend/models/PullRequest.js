@@ -2,12 +2,11 @@ import mongoose from "mongoose";
 
 const pullRequestSchema = new mongoose.Schema(
   {
-    repoName: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: [3, "Pull request repoName must be at least 3 characters long"],
-    },
+    repoId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Repository",
+  required: true
+},
     title: {
       type: String,
       required: true,
@@ -22,10 +21,40 @@ const pullRequestSchema = new mongoose.Schema(
     },
     sourceBranch: { type: String, required: true, trim: true },
     targetBranch: { type: String, required: true, trim: true },
-    status: { type: String, enum: ["open", "merged"], default: "open" },
+    status: {
+      type: String,
+      enum: ["open", "merged", "closed"],
+      default: "open"
+    },
+    mergedAt: Date,
+    closedAt: Date,
+    reviewers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }],
+    reviewDecisions: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      },
+
+      decision: {
+        type: String,
+        enum: ["approved", "changes_requested", "commented"]
+      },
+
+      decidedAt: Date
+    }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true }
+  { timestamps: true 
+    
+  }
 );
+pullRequestSchema.index({
+  repoId: 1,
+  status: 1,
+  createdAt: -1
+});
 
 export default mongoose.model("PullRequest", pullRequestSchema);

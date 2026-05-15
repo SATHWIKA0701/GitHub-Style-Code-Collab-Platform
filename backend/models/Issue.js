@@ -28,8 +28,29 @@ const issueSchema = new mongoose.Schema(
       enum: ["open", "closed"],
       default: "open",
     },
+    number: {
+      type: Number,
+      required: true
+    },
+    assignees: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }],
+    labels: [{
+      type: String
+    }],
+    closedAt: Date,
+    closedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
   },
   { timestamps: true }
+);
+
+issueSchema.index(
+  { repoId: 1, number: 1 },
+  { unique: true }
 );
 
 export default mongoose.model("Issue", issueSchema);
