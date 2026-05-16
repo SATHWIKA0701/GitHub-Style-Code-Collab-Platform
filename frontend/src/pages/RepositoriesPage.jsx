@@ -6,7 +6,7 @@ export const RepositoriesPage = () => {
   const [repos, setRepos] = useState([]);
   const [query, setQuery] = useState('');
 
-  useEffect(() => { repoApi.list().then(setRepos).catch(() => setRepos([])); }, []);
+  useEffect(() => { repoApi.list().then((res) => setRepos(res.data)).catch(() => setRepos([])); }, []);
   const filtered = useMemo(() => repos.filter((repo) => repo.name.toLowerCase().includes(query.toLowerCase())), [repos, query]);
 
   return (

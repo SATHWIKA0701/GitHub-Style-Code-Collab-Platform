@@ -8,18 +8,59 @@ import Notification from "../models/NotificationModel.js";
 import Activity from "../models/ActivityModel.js";
 import mongoose from "mongoose";
 import { initRepository } from "../services/gitService.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { getPagination } from "../utils/pagination.js";
+import {
+  createNotification,
+  emitUserNotification,
+} from "../utils/eventHelpers.js";
 
 const repoPopulate = [
   { path: "owner", select: "_id username email" },
   { path: "collaborators.userId", select: "_id username email" },
 ];
 
-export const createRepo = async (req, res) => {
+const sanitizeRepoForViewer = (repo, currentUserId) => {
+  if (!repo) return repo;
+
+  const repoObj =
+    typeof repo.toObject === "function"
+      ? repo.toObject()
+      : repo;
+
+  const isOwner =
+    String(repoObj.owner?._id || repoObj.owner) ===
+    String(currentUserId);
+
+  if (isOwner) {
+    return repoObj;
+  }
+
+  if (Array.isArray(repoObj.collaborators)) {
+    repoObj.collaborators =
+      repoObj.collaborators.map((c) => ({
+        role: c.role,
+        userId: c.userId
+          ? {
+              _id: c.userId._id,
+              username: c.userId.username,
+            }
+          : null,
+      }));
+  }
+
+  return repoObj;
+};
+
+export const createRepo = asyncHandler(async (req, res) => {
   const { name, description = "", visibility = "private", defaultBranch = "main" } = req.body || {};
   if (!name) return res.status(400).json({ message: "Repository name is required" });
   const repoName = String(name).trim();
   if (repoName.length < 3) return res.status(400).json({ message: "Repository name must be at least 3 characters long" });
-  const exists = await Repository.findOne({ name: repoName });
+  const exists = await Repository.findOne({
+    owner: req.user.id,
+    name: repoName,
+  });
   if (exists) return res.status(409).json({ message: "Repository name already exists" });
 
   const repo = await Repository.create({
@@ -43,25 +84,59 @@ export const createRepo = async (req, res) => {
 
   const hydrated = await Repository.findById(repo._id).populate(repoPopulate);
   res.status(201).json(hydrated);
-};
+});
 
-export const getAllRepos = async (req, res) => {
+export const getAllRepos = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const repos = await Repository.find({ $or: [{ owner: userId }, { "collaborators.userId": userId }] })
-    .populate(repoPopulate)
-    .sort({ updatedAt: -1 });
-  res.status(200).json(repos);
-};
 
-export const getRepoById = async (req, res) => {
+  const { page, limit, skip } = getPagination(req.query);
+
+  const query = {
+    $or: [
+      { owner: userId },
+      { "collaborators.userId": userId },
+    ],
+  };
+
+  const [repos, total] = await Promise.all([
+    Repository.find(query)
+      .populate(repoPopulate)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit),
+
+    Repository.countDocuments(query),
+  ]);
+
+  const data = repos.map((repo) =>
+    sanitizeRepoForViewer(repo, req.user.id)
+  );
+
+  res.status(200).json({
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
+});
+
+export const getRepoById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const repo = req.repo || (await Repository.findById(id));
   if (!repo) return res.status(404).json({ message: "Repository not found" });
-  const hydrated = await Repository.findById(repo._id).populate(repoPopulate);
-  res.status(200).json(hydrated);
-};
+  const hydrated = await Repository.findById(repo._id)
+  .populate(repoPopulate);
 
-export const deleteRepo = async (req, res) => {
+const sanitized = sanitizeRepoForViewer(
+  hydrated,
+  req.user.id
+);
+
+res.status(200).json(sanitized);
+});
+
+export const deleteRepo = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const repo = await Repository.findById(id);
   if (!repo) return res.status(404).json({ message: "Repository not found" });
@@ -73,18 +148,22 @@ export const deleteRepo = async (req, res) => {
     await Comment.deleteMany({ issueId: { $in: issueIds } });
     await Issue.deleteMany({ repoId: repo._id });
   }
-  const prDocs = await PullRequest.find({ repoName: repo.name }).select("_id");
+  const prDocs = await PullRequest.find({
+  repoId: repo._id,
+}).select("_id");
   const prIds = prDocs.map((d) => d._id);
   if (prIds.length > 0) await ReviewComment.deleteMany({ prId: { $in: prIds } });
-  await PullRequest.deleteMany({ repoName: repo.name });
+  await PullRequest.deleteMany({
+  repoId: repo._id,
+});
   await Notification.deleteMany({ repoId: repo._id });
   await Activity.deleteMany({ repoId: repo._id });
   await repo.deleteOne();
 
   res.status(200).json({ message: "Repository deleted successfully" });
-};
+});
 
-export const addCollaborator = async (req, res) => {
+export const addCollaborator = asyncHandler(async (req, res) => {
   const { userId, role } = req.body || {};
   if (!userId) return res.status(400).json({ message: "userId is required" });
   if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ message: "Invalid userId" });
@@ -109,6 +188,146 @@ export const addCollaborator = async (req, res) => {
     metadata: { targetUserId: String(userId), role: requestedRole, repoId: String(repo._id) },
   });
 
+  await createNotification({
+  userId,
+
+  repoId: repo._id,
+
+  type: "collaborator_added",
+
+  message: `You were added to ${repo.name} as ${requestedRole}`,
+
+  resourceType: "repository",
+
+  resourceId: repo._id,
+});
+
+emitUserNotification(userId, {
+  type: "collaborator_added",
+
+  message: `You were added to ${repo.name}`,
+
+  repoId: repo._id,
+});
+
   const hydrated = await Repository.findById(repo._id).populate(repoPopulate);
+  return res.status(200).json(hydrated);
+});
+
+export const removeCollaborator = async (req, res) => {
+  const { userId } = req.params;
+
+  const repo = req.repo;
+
+  if (!repo) {
+    return res.status(404).json({
+      message: "Repository not found",
+    });
+  }
+
+  // Prevent owner removal
+  if (String(repo.owner) === String(userId)) {
+    return res.status(400).json({
+      message: "Repository owner cannot be removed",
+    });
+  }
+
+  const existing = repo.collaborators.find(
+    (c) => String(c.userId) === String(userId)
+  );
+
+  if (!existing) {
+    return res.status(404).json({
+      message: "Collaborator not found",
+    });
+  }
+
+  repo.collaborators = repo.collaborators.filter(
+  (c, index, self) =>
+    index === self.findIndex(
+      (x) => String(x.userId) === String(c.userId)
+    )
+);
+
+  await repo.save();
+
+  await logActivity({
+    repoId: repo._id,
+    userId: req.user.id,
+    eventType: "collaborator_removed",
+    message: `Collaborator removed`,
+    metadata: {
+      targetUserId: String(userId),
+      repoId: String(repo._id),
+    },
+  });
+
+  const hydrated = await Repository.findById(repo._id)
+    .populate(repoPopulate);
+
+  return res.status(200).json(hydrated);
+};
+
+export const updateCollaboratorRole = async (req, res) => {
+  const { userId } = req.params;
+
+  const { role } = req.body || {};
+
+  const repo = req.repo;
+
+  if (!repo) {
+    return res.status(404).json({
+      message: "Repository not found",
+    });
+  }
+
+  if (!role) {
+    return res.status(400).json({
+      message: "role is required",
+    });
+  }
+
+  if (!["collaborator", "viewer"].includes(role)) {
+    return res.status(400).json({
+      message: "Invalid role",
+    });
+  }
+
+  // Prevent owner modification
+  if (String(repo.owner) === String(userId)) {
+    return res.status(400).json({
+      message: "Repository owner role cannot be modified",
+    });
+  }
+
+  const collaborator = repo.collaborators.find(
+    (c) => String(c.userId) === String(userId)
+  );
+
+  if (!collaborator) {
+    return res.status(404).json({
+      message: "Collaborator not found",
+    });
+  }
+
+  collaborator.role = role;
+
+  await repo.save();
+
+  await logActivity({
+    repoId: repo._id,
+    userId: req.user.id,
+    eventType: "collaborator_role_updated",
+    message: `Collaborator role updated`,
+    metadata: {
+      targetUserId: String(userId),
+      role,
+      repoId: String(repo._id),
+    },
+  });
+
+  const hydrated = await Repository.findById(repo._id)
+    .populate(repoPopulate);
+
   return res.status(200).json(hydrated);
 };

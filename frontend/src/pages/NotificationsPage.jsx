@@ -3,7 +3,7 @@ import { notificationApi } from '../api/services';
 
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
-  const load = () => notificationApi.list().then((data) => setNotifications(data.notifications || []));
+  const load = () => notificationApi.list().then((res) => setNotifications(res.data || []));
   useEffect(() => { load(); }, []);
   return (
     <div className="card list-stack">

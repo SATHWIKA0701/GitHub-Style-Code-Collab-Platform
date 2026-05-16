@@ -15,9 +15,13 @@ export const PullRequestDetailPage = () => {
   const load = async () => {
     const detail = await prApi.detail(prId);
     setPr(detail);
-    setComments(await prApi.comments(prId));
-    const diffData = await prApi.diff(detail.repoName, detail.sourceBranch, detail.targetBranch);
-    setDiff(diffData.diff || '');
+    const res = await prApi.comments(prId);
+    setComments(res.data);
+    const diffData = await prApi.diff(
+  detail.repoId?.name,
+  detail.sourceBranch,
+  detail.targetBranch
+);
   };
 
   useEffect(() => { load().catch(() => {}); }, [prId]);
@@ -28,7 +32,7 @@ export const PullRequestDetailPage = () => {
       <section className="card stack-md">
         <div className="section-header"><h1>{pr.title}</h1><span className={`pill ${pr.status === 'merged' ? 'pill-success' : ''}`}>{pr.status}</span></div>
         <p>{pr.description || 'No description provided.'}</p>
-        <div className="meta-row"><span>{pr.sourceBranch} → {pr.targetBranch}</span><span>{pr.createdBy?.username || 'Unknown author'}</span></div>
+        <div className="meta-row"><span>{pr.repoId?.name}</span><span>{pr.sourceBranch} → {pr.targetBranch}</span><span>{pr.createdBy?.username || 'Unknown author'}</span></div>
         {pr.status !== 'merged' && <button className="primary-button" onClick={async () => { await prApi.merge(pr._id); pushToast('Pull request merged'); load(); }}>Merge pull request</button>}
       </section>
       <div className="split-grid two">

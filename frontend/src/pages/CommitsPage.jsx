@@ -6,7 +6,7 @@ export const CommitsPage = () => {
   const { repo } = useOutletContext();
   const [commits, setCommits] = useState([]);
   useEffect(() => {
-    gitApi.commits(repo.name).then((data) => setCommits(data.all || [])).catch(() => setCommits([]));
+    gitApi.commits(repo.name).then((res) => setCommits(res.data || [])).catch(() => setCommits([]));
   }, [repo.name]);
   return (
     <div className="card list-stack">

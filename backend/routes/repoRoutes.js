@@ -5,6 +5,8 @@ import {
   getRepoById,
   deleteRepo,
   addCollaborator,
+  removeCollaborator,
+  updateCollaboratorRole,
 } from "../controllers/repoController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js"; // ✅ ADD THIS
@@ -36,6 +38,20 @@ router.post(
   loadRepoById,
   permissionMiddleware("owner"),
   addCollaborator
+);
+router.delete(
+  "/:id/collaborators/:userId",
+  authMiddleware,
+  loadRepoById,
+  permissionMiddleware("owner"),
+  removeCollaborator
+);
+router.put(
+  "/:id/collaborators/:userId",
+  authMiddleware,
+  loadRepoById,
+  permissionMiddleware("owner"),
+  updateCollaboratorRole
 );
 
 // 🔒 Protected reads (auth + membership)

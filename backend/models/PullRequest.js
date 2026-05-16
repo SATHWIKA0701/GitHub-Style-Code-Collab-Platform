@@ -2,12 +2,11 @@ import mongoose from "mongoose";
 
 const pullRequestSchema = new mongoose.Schema(
   {
-    repoName: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: [3, "Pull request repoName must be at least 3 characters long"],
-    },
+    repoId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Repository",
+    required: true,
+  },
     title: {
       type: String,
       required: true,
@@ -27,5 +26,5 @@ const pullRequestSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+pullRequestSchema.index({ repoId: 1 });
 export default mongoose.model("PullRequest", pullRequestSchema);

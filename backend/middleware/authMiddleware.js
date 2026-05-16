@@ -1,10 +1,7 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
-  const tokenFromCookie = req.cookies?.token;
-  const authHeader = req.headers?.authorization;
-  const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const token = tokenFromCookie || bearerToken;
+  const token = req.cookies?.token;
 
   if (!token) {
     return res.status(401).json({ message: "No token" });
@@ -19,7 +16,7 @@ const authMiddleware = (req, res, next) => {
 
     next();
   } catch (err) {
-    res.status(403).json({ message: "Invalid token" });
+    return res.status(403).json({ message: "Invalid token" });
   }
 };
 

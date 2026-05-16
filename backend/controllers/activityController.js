@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import Activity from "../models/ActivityModel.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { getPagination } from "../utils/pagination.js";
 
-export const getRepoActivity = async (req, res) => {
-  try {
+export const getRepoActivity = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -12,18 +13,23 @@ export const getRepoActivity = async (req, res) => {
       });
     }
 
-    const activities = await Activity.find({ repoId: id }).sort({ createdAt: -1 });
+    const { page, limit, skip } = getPagination(req.query);
+    const query = { repoId: id };
+
+    const [data, total] = await Promise.all([
+      Activity.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Activity.countDocuments(query),
+    ]);
 
     return res.status(200).json({
       success: true,
-      count: activities.length,
-      activities,
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch repository activity",
-      error: error.message,
-    });
-  }
-};
+});

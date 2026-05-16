@@ -8,40 +8,34 @@ export const AuthProvider = ({ children }) => {
   const [ready, setReady] = useState(false);
 
   const bootstrap = async () => {
-    const token = localStorage.getItem('ccp-token');
-    if (!token) {
-      setReady(true);
-      return;
-    }
-    try {
-      const profile = await authApi.profile();
-      setUser(profile);
-    } catch {
-      localStorage.removeItem('ccp-token');
-      setUser(null);
-    } finally {
-      setReady(true);
-    }
-  };
+  try {
+    const profile = await authApi.profile();
+    setUser(profile);
+  } catch {
+    setUser(null);
+  } finally {
+    setReady(true);
+  }
+};
 
   useEffect(() => { bootstrap(); }, []);
 
   const login = async (payload) => {
-    const data = await authApi.login(payload);
-    if (data.token) localStorage.setItem('ccp-token', data.token);
-    const profile = await authApi.profile();
-    setUser(profile);
-    return data;
-  };
+  const data = await authApi.login(payload);
+  const profile = await authApi.profile();
+  setUser(profile);
+  return data;
+};
 
   const register = async (payload) => authApi.register(payload);
 
   const logout = async () => {
-    try { await authApi.logout(); } finally {
-      localStorage.removeItem('ccp-token');
-      setUser(null);
-    }
-  };
+  try {
+    await authApi.logout();
+  } finally {
+    setUser(null);
+  }
+};
 
   const refreshProfile = async () => {
     const profile = await authApi.profile();

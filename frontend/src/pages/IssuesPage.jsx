@@ -15,13 +15,13 @@ export const IssuesPage = () => {
   const [form, setForm] = useState({ title: '', description: '' });
   const [commentText, setCommentText] = useState('');
 
-  const load = () => repoApi.issues(repo._id).then(setIssues);
+  const load = () => repoApi.issues(repo._id).then((res) => setIssues(res.data));
   useEffect(() => { load(); }, [repo._id]);
 
   const openIssue = async (issue) => {
     setSelectedIssue(issue);
-    const data = await issueApi.comments(issue._id);
-    setComments(data);
+    const res = await issueApi.comments(issue._id);
+    setComments(res.data);
   };
 
   return (

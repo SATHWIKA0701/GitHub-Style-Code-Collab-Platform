@@ -5,16 +5,14 @@ const http = axios.create({
   withCredentials: true,
 });
 
-http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ccp-token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || error.response?.data?.error || error.message;
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message;
+
     return Promise.reject(new Error(message));
   }
 );

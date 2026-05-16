@@ -7,7 +7,7 @@ export const ActivityPage = () => {
   const [activity, setActivity] = useState([]);
   const [graph, setGraph] = useState('');
   useEffect(() => {
-    repoApi.activity(repo._id).then((data) => setActivity(data.activities || []));
+    repoApi.activity(repo._id).then((res) => setActivity(res.data || []));
     gitApi.graph(repo.name).then((data) => setGraph(data.graph || ''));
   }, [repo._id, repo.name]);
   return (
