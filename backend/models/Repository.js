@@ -35,6 +35,33 @@ const repositorySchema = new mongoose.Schema(
     },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     collaborators: [collaboratorSchema],
+    status: {
+      type: String,
+      enum: ["open", "merged", "closed"],
+      default: "open",
+    },
+    mergedAt: Date,
+    closedAt: Date,
+    reviewers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    reviewDecisions: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        decision: {
+          type: String,
+          enum: ["approved", "changes_requested", "commented"],
+        },
+        body: String,
+        decidedAt: Date,
+      },
+    ],
   },
   { timestamps: true }
 );

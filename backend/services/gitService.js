@@ -94,12 +94,36 @@ export const switchBranch = async (repoName, branchName) => {
   return { message: "Switched branch" };
 };
 
-export const mergeBranch = async (repoName, branchName) => {
-  const safeBranchName = assertSafeBranchName(branchName);
-  const git = simpleGit(getRepoPath(repoName, true));
+export const mergeBranch = async (
+  repoName,
+  sourceBranch,
+  targetBranch
+) => {
+
+  const safeSourceBranch =
+    assertSafeBranchName(sourceBranch);
+
+  const safeTargetBranch =
+    assertSafeBranchName(targetBranch);
+
+  const git = simpleGit(
+    getRepoPath(repoName, true)
+  );
+
+  // checkout target branch first
+  await git.checkout(safeTargetBranch);
+
+  // check conflicts before merge
   const status = await git.status();
-  if (status.conflicted.length > 0) throw new Error("Merge conflict detected");
-  return await git.merge([safeBranchName]);
+
+  if (status.conflicted.length > 0) {
+    throw new Error("Merge conflict detected");
+  }
+
+  // merge source branch into target branch
+  return await git.merge([
+    safeSourceBranch
+  ]);
 };
 
 export const generateDiff = (oldContent, newContent) => diffLines(oldContent, newContent);

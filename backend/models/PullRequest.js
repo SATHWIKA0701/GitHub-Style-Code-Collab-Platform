@@ -1,60 +1,157 @@
 import mongoose from "mongoose";
 
-const pullRequestSchema = new mongoose.Schema(
-  {
-    repoId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Repository",
-  required: true
-},
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: [3, "Pull request title must be at least 3 characters long"],
-      maxlength: [120, "Pull request title must be at most 120 characters long"],
-    },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: [5000, "Pull request description is too long"],
-    },
-    sourceBranch: { type: String, required: true, trim: true },
-    targetBranch: { type: String, required: true, trim: true },
-    status: {
-      type: String,
-      enum: ["open", "merged", "closed"],
-      default: "open"
-    },
-    mergedAt: Date,
-    closedAt: Date,
-    reviewers: [{
+const reviewDecisionSchema =
+  new mongoose.Schema({
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    }],
-    reviewDecisions: [{
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      },
+      ref: "User",
+      required: true
+    },
 
-      decision: {
+    decision: {
+      type: String,
+      enum: [
+        "approved",
+        "changes_requested",
+        "commented"
+      ],
+      required: true
+    },
+
+    body: {
+      type: String,
+      default: ""
+    },
+
+    decidedAt: {
+      type: Date,
+      default: Date.now
+    }
+  });
+
+const prCommentSchema =
+  new mongoose.Schema({
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
+    body: {
+      type: String,
+      required: true
+    },
+
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  });
+
+const inlineCommentSchema =
+  new mongoose.Schema({
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
+    filePath: {
+      type: String,
+      required: true
+    },
+
+    lineNumber: {
+      type: Number,
+      required: true
+    },
+
+    body: {
+      type: String,
+      required: true
+    },
+
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  });
+
+const pullRequestSchema =
+  new mongoose.Schema(
+    {
+      repoName: {
         type: String,
-        enum: ["approved", "changes_requested", "commented"]
+        required: true
       },
 
-      decidedAt: Date
-    }],
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  },
-  { timestamps: true 
-    
-  }
-);
-pullRequestSchema.index({
-  repoId: 1,
-  status: 1,
-  createdAt: -1
-});
+      title: {
+        type: String,
+        required: true
+      },
 
-export default mongoose.model("PullRequest", pullRequestSchema);
+      description: {
+        type: String,
+        default: ""
+      },
+
+      sourceBranch: {
+        type: String,
+        required: true
+      },
+
+      targetBranch: {
+        type: String,
+        required: true
+      },
+
+      status: {
+        type: String,
+        enum: [
+          "open",
+          "closed",
+          "merged"
+        ],
+        default: "open"
+      },
+
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+      },
+
+      reviewDecisions: [
+        reviewDecisionSchema
+      ],
+
+      comments: [
+        prCommentSchema
+      ],
+
+      inlineComments: [
+        inlineCommentSchema
+      ],
+
+      mergedAt: {
+        type: Date,
+        default: null
+      },
+
+      closedAt: {
+        type: Date,
+        default: null
+      }
+    },
+    {
+      timestamps: true
+    }
+  );
+
+const PullRequest =
+  mongoose.model(
+    "PullRequest",
+    pullRequestSchema
+  );
+
+export default PullRequest;
