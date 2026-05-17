@@ -6,9 +6,9 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
-import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
+import { apiLimiter } from "./middleware/rateLimiters.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import repoRoutes from "./routes/repoRoutes.js";
@@ -30,10 +30,20 @@ const server = http.createServer(app);
 const NODE_ENV = process.env.NODE_ENV || "development";
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
-// ✅ Security headers
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'", CLIENT_URL],
+      },
+    },
+  })
+);
 
-// ✅ CORS (only once, env-based)
 app.use(
   cors({
     origin: CLIENT_URL,
@@ -41,29 +51,18 @@ app.use(
   })
 );
 
-// ✅ Middlewares
 app.use(express.json());
 app.use(cookieParser());
 app.use(compression());
 
-// ✅ Logging (reduced in production)
+app.use(apiLimiter);
+
 if (NODE_ENV === "development") {
   app.use(morgan("dev"));
 } else {
   app.use(morgan("combined"));
 }
 
-// ✅ Basic rate limiting on API (especially auth)
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-});
-
-app.use("/auth", apiLimiter);
-app.use("/repos", apiLimiter);
-app.use("/api", apiLimiter);
-
-// ✅ Routes
 app.use("/auth", authRoutes);
 app.use("/repos", repoRoutes);
 app.use("/", issueRoutes);
@@ -73,7 +72,6 @@ app.use("/api/pr", prRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/git", gitRoutes);
 
-// ✅ Health check
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -81,29 +79,26 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ✅ Test route
 app.get("/", (req, res) => {
   res.send("API Running");
 });
 
-// ✅ 404 handler
 app.use((req, res, next) => {
-  res.status(404).json({ message: "Route not found" });
+  res.status(404).json({
+    message: "Route not found",
+  });
 });
 
-// ✅ Global error handler
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err);
 
-  // Handle invalid JSON bodies from express.json()
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     return res.status(400).json({
       message: "Invalid JSON body",
     });
   }
 
-  // Mongoose model/schema errors
   if (err instanceof mongoose.Error.ValidationError) {
     return res.status(400).json({
       message: "Validation error",
@@ -121,7 +116,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Duplicate key errors (e.g. unique index)
   if (err && typeof err === "object" && err.code === 11000) {
     return res.status(409).json({
       message: "Duplicate value",
@@ -136,7 +130,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ Server (strict port 3000 only)
 const PORT = Number(process.env.PORT) || 3000;
 
 const onServerStart = () => {
@@ -147,7 +140,6 @@ initSocket(server);
 
 server.listen(PORT, onServerStart);
 
-// If port is already in use, fail fast (no auto-increment)
 server.on("error", (error) => {
   if (error.code === "EADDRINUSE") {
     console.error(`Port ${PORT} is already in use. Close the process and restart`);

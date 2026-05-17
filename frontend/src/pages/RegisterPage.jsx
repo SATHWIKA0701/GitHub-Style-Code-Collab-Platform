@@ -1,3 +1,4 @@
+//registerPage.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FormField } from '../components/FormField';
@@ -30,7 +31,7 @@ export const RegisterPage = () => {
         <h2>Create account</h2>
         <FormField label="Username"><input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></FormField>
         <FormField label="Email"><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
-        <FormField label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} /></FormField>
+        <FormField label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} /></FormField>
         {error ? <div className="error-banner">{error}</div> : null}
         <button className="primary-button" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
         <p className="subtle">Already have an account? <Link to="/login">Login</Link></p>
