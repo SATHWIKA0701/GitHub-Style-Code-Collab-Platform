@@ -3,108 +3,82 @@ import {
   NavLink,
   Outlet,
   useNavigate,
-} from "react-router-dom";
+} from 'react-router-dom';
 
-import {
-  useEffect,
-  useRef,
-} from "react";
+import { useEffect } from 'react';
 
-import { io } from "socket.io-client";
+import { useAuth } from '../contexts/AuthContext';
+import { useApp } from '../contexts/AppContext';
+import { useSocket } from '../contexts/SocketContext';
 
-import { useAuth } from "../contexts/AuthContext";
-
-import { useApp } from "../contexts/AppContext";
-
-import { ToastStack } from "../components/ToastStack";
+import { ToastStack } from '../components/ToastStack';
 
 export const AppLayout = () => {
   const { user, logout } = useAuth();
 
   const {
     unreadNotifications,
-
     incrementUnreadCount,
-
     prependNotification,
-
     pushToast,
   } = useApp();
 
+  const { socket } = useSocket();
+
   const navigate = useNavigate();
 
-  const socketRef = useRef(null);
-
   useEffect(() => {
-    const socket = io(
-      import.meta.env.VITE_API_URL ||
-        "http://localhost:3000",
-      {
-        withCredentials: true,
+    if (!socket) return;
+
+    const onNotification = (payload) => {
+      pushToast(
+        payload?.message ||
+          'New notification'
+      );
+
+      incrementUnreadCount();
+
+      if (payload?.notification) {
+        prependNotification(
+          payload.notification
+        );
       }
-    );
+    };
 
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
+    const onRepoEvent = (payload) => {
       console.log(
-        "Socket connected:",
-        socket.id
+        'Repo event:',
+        payload
       );
-    });
-
-    socket.on("disconnect", () => {
-      console.log(
-        "Socket disconnected"
-      );
-    });
+    };
 
     socket.on(
-      "notification",
-      (payload) => {
-        console.log(
-          "Notification:",
-          payload
-        );
-
-        pushToast(
-          payload?.message ||
-            "New notification"
-        );
-
-        incrementUnreadCount();
-
-        if (payload?.notification) {
-          prependNotification(
-            payload.notification
-          );
-        }
-      }
+      'notification',
+      onNotification
     );
 
     socket.on(
-      "repo_event",
-      (payload) => {
-        console.log(
-          "Repo event:",
-          payload
-        );
-      }
+      'repo_event',
+      onRepoEvent
     );
 
     return () => {
-      socket.off("notification");
+      socket.off(
+        'notification',
+        onNotification
+      );
 
-      socket.off("repo_event");
-
-      socket.disconnect();
+      socket.off(
+        'repo_event',
+        onRepoEvent
+      );
     };
-  }, []);
+  }, [socket]);
 
   const handleLogout = async () => {
     await logout();
 
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
@@ -130,9 +104,11 @@ export const AppLayout = () => {
             <NavLink to="/notifications">
               <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
+                  display:
+                    'inline-flex',
+                  alignItems:
+                    'center',
+                  gap: '0.5rem',
                 }}
               >
                 Notifications
@@ -142,32 +118,34 @@ export const AppLayout = () => {
                   <span
                     style={{
                       minWidth:
-                        "20px",
+                        '20px',
 
-                      height: "20px",
+                      height:
+                        '20px',
 
                       borderRadius:
-                        "999px",
+                        '999px',
 
                       background:
-                        "#ef4444",
+                        '#ef4444',
 
-                      color: "white",
+                      color:
+                        'white',
 
                       fontSize:
-                        "12px",
+                        '12px',
 
                       display:
-                        "inline-flex",
+                        'inline-flex',
 
                       alignItems:
-                        "center",
+                        'center',
 
                       justifyContent:
-                        "center",
+                        'center',
 
                       padding:
-                        "0 6px",
+                        '0 6px',
 
                       fontWeight: 700,
                     }}
@@ -196,9 +174,7 @@ export const AppLayout = () => {
 
             <button
               className="ghost-button"
-              onClick={
-                handleLogout
-              }
+              onClick={handleLogout}
             >
               Logout
             </button>

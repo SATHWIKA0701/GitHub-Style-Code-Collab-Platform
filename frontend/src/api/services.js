@@ -1,3 +1,4 @@
+//services.js
 import http from './http';
 
 export const authApi = {
@@ -14,9 +15,19 @@ export const repoApi = {
   create: (payload) => http.post('/repos', payload).then((r) => r.data),
   detail: (id) => http.get(`/repos/${id}`).then((r) => r.data),
   addCollaborator: (id, payload) => http.post(`/repos/${id}/collaborators`, payload).then((r) => r.data),
+  removeCollaborator: (id, userId) =>
+    http
+      .delete(`/repos/${id}/collaborators/${userId}`)
+      .then((r) => r.data),
+
+  updateCollaboratorRole: (id, userId, payload) =>
+    http
+      .put(`/repos/${id}/collaborators/${userId}`, payload)
+      .then((r) => r.data),
   issues: (id, page = 1, limit = 20) => http.get(`/repos/${id}/issues?page=${page}&limit=${limit}`).then((r) => r.data),
   createIssue: (id, payload) => http.post(`/repos/${id}/issues`, payload).then((r) => r.data),
   activity: (id, page = 1, limit = 20) => http.get(`/api/repos/${id}/activity?page=${page}&limit=${limit}`).then((r) => r.data),
+
 };
 
 export const issueApi = {
@@ -27,7 +38,7 @@ export const issueApi = {
 
 export const prApi = {
   list: (repoId, page = 1, limit = 20) =>
-  http.get(`/api/pr/repository/${repoId}?page=${page}&limit=${limit}`).then((r) => r.data),
+    http.get(`/api/pr/repository/${repoId}?page=${page}&limit=${limit}`).then((r) => r.data),
   detail: (prId) => http.get(`/api/pr/item/${prId}`).then((r) => r.data),
   create: (payload) => http.post('/api/pr', payload).then((r) => r.data),
   merge: (prId) => http.put(`/api/pr/${prId}/merge`).then((r) => r.data),

@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+//FileExplorerPage.jsx
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
+import { lazy, Suspense } from 'react';
+
+const Editor = lazy(() => import('@monaco-editor/react'));
 import { gitApi } from '../api/services';
 import { useApp } from '../contexts/AppContext';
 import { Modal } from '../components/Modal';
@@ -101,7 +104,14 @@ export const FileExplorerPage = () => {
           {selectedFile ? (
             <>
               <div className="section-header"><strong>{selectedFile}</strong><button className="primary-button small" onClick={saveFile}>Save file</button></div>
-              <Editor height="65vh" theme="vs-dark" value={content} onChange={(value) => setContent(value || '')} />
+              <Suspense fallback={<div className="empty-card">Loading editor...</div>}>
+  <Editor
+    height="65vh"
+    theme="vs-dark"
+    value={content}
+    onChange={(value) => setContent(value || '')}
+  />
+</Suspense>
             </>
           ) : <div className="empty-card">Select a file to inspect or edit it.</div>}
         </div>

@@ -1,3 +1,4 @@
+//IssuePage.jsx
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { issueApi, repoApi } from '../api/services';
@@ -14,14 +15,24 @@ export const IssuesPage = () => {
   const [issueOpen, setIssueOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '' });
   const [commentText, setCommentText] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const load = () => repoApi.issues(repo._id).then((res) => setIssues(res.data));
-  useEffect(() => { load(); }, [repo._id]);
+  const load = () =>
+    repoApi
+      .issues(repo._id, page)
+      .then((res) => {
+        setIssues(res.data || []);
+        setTotalPages(res.totalPages || 1);
+      });
+  useEffect(() => {
+    load();
+  }, [repo._id, page]);
 
   const openIssue = async (issue) => {
     setSelectedIssue(issue);
     const res = await issueApi.comments(issue._id);
-    setComments(res.data);
+    setComments(res.data || []);
   };
 
   return (
@@ -60,6 +71,27 @@ export const IssuesPage = () => {
           <button className="primary-button">Create issue</button>
         </form>
       </Modal>
+      <div className="button-row">
+        <button
+          className="secondary-button"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {page} of {totalPages}
+        </span>
+
+        <button
+          className="secondary-button"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };
