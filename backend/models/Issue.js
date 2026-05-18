@@ -41,6 +41,15 @@ const issueSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+issueSchema.index({
+  repoId: 1,
+  createdAt: -1,
+});
+
+issueSchema.index({
+  repoId: 1,
+  status: 1,
+});
 
 export default mongoose.model(
   "Issue",

@@ -40,4 +40,12 @@ repositorySchema.index(
   { owner: 1, name: 1 },
   { unique: true }
 );
+repositorySchema.index({
+  owner: 1,
+  updatedAt: -1,
+});
+
+repositorySchema.index({
+  "collaborators.userId": 1,
+});
 export default mongoose.model("Repository", repositorySchema);

@@ -2,9 +2,11 @@ import * as gitService from "../services/gitService.js";
 import { logActivity, notifyRepoMembers } from "../utils/eventHelpers.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getPagination } from "../utils/pagination.js";
+import cache from "../utils/cache.js";
 
 export const createRepo = asyncHandler(async (req, res) => {
   const { repoName, defaultBranch } = req.body;
+
   const repoPath = await gitService.initRepository(
     repoName,
     defaultBranch || "main"
@@ -15,7 +17,12 @@ export const createRepo = asyncHandler(async (req, res) => {
 
 export const commit = asyncHandler(async (req, res) => {
   const { repoName, message } = req.body;
+
   const result = await gitService.commitFiles(repoName, message);
+
+  cache.del(`commits:${repoName}:1:20`);
+  cache.del(`branches:${repoName}`);
+
   const repo = req.repo;
 
   if (repo) {
@@ -49,24 +56,38 @@ export const getCommits = asyncHandler(async (req, res) => {
   const { repoName } = req.params;
   const { page, limit, skip } = getPagination(req.query);
 
+  const key = `commits:${repoName}:${page}:${limit}`;
+  const cached = cache.get(key);
+
+  if (cached) {
+    return res.json(cached);
+  }
+
   const { data, total } = await gitService.getCommitHistory(
     repoName,
     skip,
     limit
   );
 
-  res.json({
+  const result = {
     data,
     total,
     page,
     limit,
     totalPages: Math.ceil(total / limit) || 1,
-  });
+  };
+
+  cache.set(key, result, 30);
+
+  res.json(result);
 });
 
 export const createBranch = asyncHandler(async (req, res) => {
   const { repoName, branchName } = req.body;
+
   const result = await gitService.createBranch(repoName, branchName);
+
+  cache.del(`branches:${repoName}`);
 
   if (req.repo) {
     await logActivity({
@@ -95,6 +116,9 @@ export const mergeBranch = asyncHandler(async (req, res) => {
     req.body.repoName,
     req.body.branchName
   );
+
+  cache.del(`commits:${req.body.repoName}:1:20`);
+  cache.del(`branches:${req.body.repoName}`);
 
   if (req.repo) {
     await logActivity({
@@ -130,7 +154,17 @@ export const getPRDiff = asyncHandler(async (req, res) => {
 });
 
 export const getBranches = asyncHandler(async (req, res) => {
+  const key = `branches:${req.params.repoName}`;
+  const cached = cache.get(key);
+
+  if (cached) {
+    return res.json(cached);
+  }
+
   const branches = await gitService.getBranches(req.params.repoName);
+
+  cache.set(key, branches, 30);
+
   res.json(branches);
 });
 
@@ -140,10 +174,19 @@ export const getCommitGraph = asyncHandler(async (req, res) => {
 });
 
 export const getFiles = asyncHandler(async (req, res) => {
+  const key = `files:${req.params.repoName}:${req.query.path || ""}`;
+  const cached = cache.get(key);
+
+  if (cached) {
+    return res.json(cached);
+  }
+
   const files = await gitService.listFiles(
     req.params.repoName,
     req.query.path || ""
   );
+
+  cache.set(key, files, 30);
 
   res.json(files);
 });
@@ -155,6 +198,9 @@ export const saveFile = asyncHandler(async (req, res) => {
     req.body.content || ""
   );
 
+  cache.del(`files:${req.body.repoName}:`);
+  cache.del(`commits:${req.body.repoName}:1:20`);
+
   res.json(result);
 });
 
@@ -165,6 +211,8 @@ export const uploadFiles = asyncHandler(async (req, res) => {
     req.body.directory || ""
   );
 
+  cache.del(`files:${req.body.repoName}:${req.body.directory || ""}`);
+
   res.json({ uploaded });
 });
 
@@ -174,6 +222,8 @@ export const createFolder = asyncHandler(async (req, res) => {
     req.body.path
   );
 
+  cache.del(`files:${req.body.repoName}:`);
+
   res.json(result);
 });
 
@@ -182,6 +232,8 @@ export const deleteFilePath = asyncHandler(async (req, res) => {
     req.body.repoName,
     req.body.path
   );
+
+  cache.del(`files:${req.body.repoName}:`);
 
   res.json(result);
 });
