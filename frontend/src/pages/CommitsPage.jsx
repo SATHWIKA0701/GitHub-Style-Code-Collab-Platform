@@ -1,23 +1,67 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
 import { useOutletContext } from 'react-router-dom';
+
 import { gitApi } from '../api/services';
 
+import { CommitGraph } from '../components/CommitGraph';
+
 export const CommitsPage = () => {
-  const { repo } = useOutletContext();
-  const [commits, setCommits] = useState([]);
+  const { repo } =
+    useOutletContext();
+
+  const [commits, setCommits] =
+    useState([]);
+
   useEffect(() => {
-    gitApi.commits(repo.name).then((data) => setCommits(data.all || [])).catch(() => setCommits([]));
+    gitApi
+      .commits(repo.name)
+      .then((data) =>
+        setCommits(
+          data.all || []
+        )
+      )
+      .catch(() =>
+        setCommits([])
+      );
   }, [repo.name]);
+
   return (
-    <div className="card list-stack">
-      <div className="section-header"><h3>Commit history</h3></div>
-      {commits.map((commit) => (
-        <div className="list-row" key={commit.hash}>
-          <div><strong>{commit.message}</strong><p>{commit.author_name}</p></div>
-          <span>{commit.date}</span>
+    <div className="stack-lg">
+      <div className="card">
+        <div className="section-header">
+          <h3>
+            Commit History
+          </h3>
         </div>
-      ))}
-      {!commits.length && <div className="empty-card">No commits yet.</div>}
+
+        {commits.length ? (
+          <CommitGraph
+            commits={commits.map(
+              (commit) => ({
+                hash:
+                  commit.hash,
+
+                message:
+                  commit.message,
+
+                author:
+                  commit.author_name,
+
+                date:
+                  commit.date,
+              })
+            )}
+          />
+        ) : (
+          <div className="empty-card">
+            No commits yet.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

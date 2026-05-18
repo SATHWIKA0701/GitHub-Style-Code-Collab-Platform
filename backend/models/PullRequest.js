@@ -141,6 +141,11 @@ const pullRequestSchema =
       closedAt: {
         type: Date,
         default: null
+      },
+
+      hasConflicts: {
+        type: Boolean,
+        default: false
       }
     },
     {

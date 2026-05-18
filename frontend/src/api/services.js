@@ -26,15 +26,41 @@ export const issueApi = {
 };
 
 export const prApi = {
-  list: (repoName) => http.get(`/api/pr/repo/${repoName}`).then((r) => r.data),
-  detail: (prId) => http.get(`/api/pr/item/${prId}`).then((r) => r.data),
-  create: (payload) => http.post('/api/pr', payload).then((r) => r.data),
-  merge: (prId) => http.put(`/api/pr/${prId}/merge`).then((r) => r.data),
-  comments: (prId) => http.get(`/api/review/${prId}`).then((r) => r.data),
-  addComment: (payload) => http.post('/api/review/comment', payload).then((r) => r.data),
+  list: (repoName) =>
+    http.get(`/api/pr/repo/${repoName}`).then((r) => r.data),
+
+  detail: (prId) =>
+    http.get(`/api/pr/item/${prId}`).then((r) => r.data),
+
+  create: (payload) =>
+    http.post('/api/pr', payload).then((r) => r.data),
+
+  merge: (prId) =>
+    http.put(`/api/pr/${prId}/merge`).then((r) => r.data),
+
+  close: (prId) =>
+    http.put(`/api/pr/${prId}/close`).then((r) => r.data),
+
+  reopen: (prId) =>
+    http.put(`/api/pr/${prId}/reopen`).then((r) => r.data),
+
+  comments: (prId) =>
+    http.get(`/api/review/${prId}`).then((r) => r.data),
+
+  addComment: (payload) =>
+    http.post('/api/review/comment', payload).then((r) => r.data),
+
   diff: (repoName, sourceBranch, targetBranch) =>
     http
-      .get(`/api/git/diff?repoName=${encodeURIComponent(repoName)}&sourceBranch=${encodeURIComponent(sourceBranch)}&targetBranch=${encodeURIComponent(targetBranch)}`)
+      .get(
+        `/api/git/diff?repoName=${encodeURIComponent(
+          repoName
+        )}&sourceBranch=${encodeURIComponent(
+          sourceBranch
+        )}&targetBranch=${encodeURIComponent(
+          targetBranch
+        )}`
+      )
       .then((r) => r.data),
 };
 

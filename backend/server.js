@@ -24,11 +24,16 @@ import gitRoutes from "./routes/gitRoutes.js";
 dotenv.config();
 connectDB();
 
+const runtimeEnv =
+  globalThis.processEnv && typeof globalThis.processEnv === "object"
+    ? globalThis.processEnv
+    : process.env;
+
 const app = express();
 const server = http.createServer(app);
 
-const NODE_ENV = process.env.NODE_ENV || "development";
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const NODE_ENV = runtimeEnv.NODE_ENV || "development";
+const CLIENT_URL = runtimeEnv.CLIENT_URL || "http://localhost:5173";
 
 // ✅ Security headers
 app.use(helmet());
@@ -137,7 +142,7 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ Server (strict port 3000 only)
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(runtimeEnv.PORT) || 3000;
 
 const onServerStart = () => {
   console.log(`Server running on port ${PORT} in ${NODE_ENV} mode`);
