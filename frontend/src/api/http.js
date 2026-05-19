@@ -5,6 +5,16 @@ const http = axios.create({
   withCredentials: true,
 });
 
+const extractErrorMessage = (error) => {
+  const data = error.response?.data;
+
+  if (data?.details && Array.isArray(data.details)) {
+    return data.details.map((item) => item.message).join('\n');
+  }
+
+  return data?.message || data?.error || error.message || 'Something went wrong';
+};
+
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem("ccp-token");
 
@@ -19,13 +29,7 @@ http.interceptors.response.use(
   (response) => response,
   (error) => {
     console.log("API ERROR:", error.response?.data);
-
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message;
-
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(extractErrorMessage(error)));
   }
 );
 

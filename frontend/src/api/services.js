@@ -6,7 +6,8 @@ export const authApi = {
   logout: () => http.post('/auth/logout').then((r) => r.data),
   profile: () => http.get('/auth/profile').then((r) => r.data),
   updateProfile: (payload) => http.put('/auth/profile', payload).then((r) => r.data),
-  searchUsers: (q) => http.get(`/auth/users/search?q=${encodeURIComponent(q)}`).then((r) => r.data),
+  searchUsers: (q) =>
+    http.get(`/auth/users/search?q=${encodeURIComponent(q)}`).then((r) => r.data),
 };
 
 export const repoApi = {
@@ -25,7 +26,8 @@ export const repoApi = {
 
 export const issueApi = {
   comments: (issueId) => http.get(`/issues/${issueId}/comments`).then((r) => r.data),
-  addComment: (issueId, payload) => http.post(`/issues/${issueId}/comments`, payload).then((r) => r.data),
+  addComment: (issueId, payload) =>
+    http.post(`/issues/${issueId}/comments`, payload).then((r) => r.data),
   close: (issueId) => http.put(`/issues/${issueId}/close`).then((r) => r.data),
   reopen: (issueId) => http.put(`/issues/${issueId}/reopen`).then((r) => r.data),
   update: (issueId, payload) => http.put(`/issues/${issueId}`, payload).then((r) => r.data),
@@ -64,33 +66,77 @@ export const prApi = {
           repoName
         )}&sourceBranch=${encodeURIComponent(
           sourceBranch
-        )}&targetBranch=${encodeURIComponent(
-          targetBranch
-        )}`
+        )}&targetBranch=${encodeURIComponent(targetBranch)}`
       )
       .then((r) => r.data),
 };
 
 export const gitApi = {
-  commits: (repoName) => http.get(`/api/git/repos/${repoName}/commits`).then((r) => r.data),
-  branches: (repoName) => http.get(`/api/git/branches/${repoName}`).then((r) => r.data),
-  graph: (repoName) => http.get(`/api/git/graph/${repoName}`).then((r) => r.data),
-  createBranch: (payload) => http.post('/api/git/branch', payload).then((r) => r.data),
-  switchBranch: (payload) => http.post('/api/git/checkout', payload).then((r) => r.data),
-  mergeBranch: (payload) => http.post('/api/git/merge', payload).then((r) => r.data),
-  commit: (payload) => http.post('/api/git/commit', payload).then((r) => r.data),
-  files: (repoName, path = '') => http.get(`/api/git/files/${repoName}?path=${encodeURIComponent(path)}`).then((r) => r.data),
-  saveFile: (payload) => http.put('/api/git/files', payload).then((r) => r.data),
-  createFolder: (payload) => http.post('/api/git/files/folder', payload).then((r) => r.data),
-  deletePath: (payload) => http.delete('/api/git/files', { data: payload }).then((r) => r.data),
+  commits: (repoName) =>
+    http.get(`/api/git/repos/${repoName}/commits`).then((r) => r.data),
+
+  commitsByBranch: (repoName, branch) =>
+    http
+      .get(`/api/git/repos/${repoName}/commits?branch=${encodeURIComponent(branch)}`)
+      .then((r) => r.data),
+
+  structuredCommits: (repoName) =>
+    http.get(`/api/git/repos/${repoName}/structured-commits`).then((r) => r.data),
+
+  commitDetails: (repoName, sha) =>
+    http.get(`/api/git/repos/${repoName}/commits/${sha}`).then((r) => r.data),
+
+  branches: (repoName) =>
+    http.get(`/api/git/branches/${repoName}`).then((r) => r.data),
+
+  graph: (repoName) =>
+    http.get(`/api/git/graph/${repoName}`).then((r) => r.data),
+
+  createBranch: (payload) =>
+    http.post('/api/git/branch', payload).then((r) => r.data),
+
+  switchBranch: (payload) =>
+    http.post('/api/git/checkout', payload).then((r) => r.data),
+
+  mergeBranch: (payload) =>
+    http.post('/api/git/merge', payload).then((r) => r.data),
+
+  commit: (payload) =>
+    http.post('/api/git/commit', payload).then((r) => r.data),
+
+  files: (repoName, path = '') =>
+    http
+      .get(`/api/git/files/${repoName}?path=${encodeURIComponent(path)}`)
+      .then((r) => r.data),
+
+  saveFile: (payload) =>
+    http.put('/api/git/files', payload).then((r) => r.data),
+
+  saveFileWithCommit: (payload) =>
+    http.post('/api/git/files/commit', payload).then((r) => r.data),
+
+  createFolder: (payload) =>
+    http.post('/api/git/files/folder', payload).then((r) => r.data),
+
+  deletePath: (payload) =>
+    http.delete('/api/git/files', { data: payload }).then((r) => r.data),
+
   uploadFiles: async ({ repoName, directory = '', files }) => {
     const form = new FormData();
+
     form.append('repoName', repoName);
     form.append('directory', directory);
-    Array.from(files).forEach((file) => form.append('files', file));
-    const response = await http.post('/api/git/files/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+
+    Array.from(files).forEach((file) => {
+      form.append('files', file);
     });
+
+    const response = await http.post('/api/git/files/upload', form, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
     return response.data;
   },
 };

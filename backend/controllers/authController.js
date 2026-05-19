@@ -1,3 +1,4 @@
+//authController.js
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -7,9 +8,17 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 const buildCookieOptions = () => ({
   httpOnly: true,
+
   secure: NODE_ENV === "production",
-  sameSite: NODE_ENV === "production" ? "Lax" : "Strict",
+
+  sameSite:
+    NODE_ENV === "production"
+      ? "None"
+      : "Strict",
+
   maxAge: ONE_DAY_MS,
+
+  path: "/",
 });
 
 const toSafeUser = (user) => ({
