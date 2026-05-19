@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { FormField } from '../components/FormField';
 import { prApi } from '../api/services';
@@ -14,16 +14,8 @@ export const PullRequestsPage = () => {
   const [form, setForm] = useState({
   repoId: repo._id, title: '', description: '', sourceBranch: '', targetBranch: repo.defaultBranch || 'main' });
 
-  const load = () => prApi.list(repo._id).then((res) => setPrs(res.data));
-  useEffect(() => { load(); }, [repo._id]);
-  
-  useEffect(() => {
-  setForm((prev) => ({
-    ...prev,
-    repoId: repo._id,
-    targetBranch: repo.defaultBranch || 'main',
-  }));
-}, [repo]);
+  const load = useCallback(() => prApi.list(repo._id).then((res) => setPrs(res.data)), [repo._id]);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="stack-lg">

@@ -15,6 +15,7 @@ import repoRoutes from "./routes/repoRoutes.js";
 import issueRoutes from "./routes/issueRoutes.js";
 
 import { initSocket } from "./config/socket.js";
+import { execSync } from "child_process";
 import activityRoutes from "./routes/activityRoute.js";
 import notificationRoutes from "./routes/notificationRoute.js";
 import prRoutes from "./routes/prRoutes.js";
@@ -146,14 +147,55 @@ const onServerStart = () => {
 
 initSocket(server);
 
-server.listen(PORT, onServerStart);
+function killProcessOnPort(port) {
+  try {
+    const out = execSync(`lsof -ti tcp:${port}`).toString().trim();
+    if (!out) return [];
+    const pids = out.split(/\s+/).filter(Boolean);
+    if (pids.length) {
+      console.log(`Killing process(es) on port ${port}: ${pids.join(", ")}`);
+      execSync(`kill -9 ${pids.join(" ")}`);
+    }
+    return pids;
+  } catch (err) {
+    // lsof returns non-zero if no process found — ignore
+    return [];
+  }
+}
 
-server.on("error", (error) => {
-  if (error.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} is already in use. Close the process and restart`);
-    process.exit(1);
-  } else {
-    console.error("Server failed:", error);
+async function startServerWithPortKill(port, retries = 1) {
+  return new Promise((resolve, reject) => {
+    server.listen(port, () => {
+      onServerStart();
+      resolve();
+    });
+
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.warn(`Port ${port} is already in use. Attempting to free it.`);
+        if (retries > 0) {
+          const killed = killProcessOnPort(port);
+          if (killed.length) {
+            // wait a short moment then retry
+            setTimeout(() => {
+              startServerWithPortKill(port, retries - 1).then(resolve).catch(reject);
+            }, 500);
+            return;
+          }
+        }
+        reject(new Error(`Port ${port} is already in use and could not be freed`));
+      } else {
+        reject(error);
+      }
+    });
+  });
+}
+
+(async () => {
+  try {
+    await startServerWithPortKill(PORT, 1);
+  } catch (err) {
+    console.error(err.message || err);
     process.exit(1);
   }
-});
+})();

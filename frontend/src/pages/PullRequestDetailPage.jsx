@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { FormField } from '../components/FormField';
@@ -36,7 +36,7 @@ export const PullRequestDetailPage = () => {
     comment: '',
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const detail = await prApi.detail(prId);
       setPr(detail);
@@ -48,14 +48,14 @@ export const PullRequestDetailPage = () => {
         detail.targetBranch
       );
       setDiff(diffData.diff || '');
-    } catch (error) {
+    } catch {
       pushToast('Failed to load PR');
     }
-  };
+  }, [prId, pushToast]);
 
   useEffect(() => {
     load();
-  }, [prId]);
+  }, [load]);
 
   const handleMergePR = async () => {
     try {

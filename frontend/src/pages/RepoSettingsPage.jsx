@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 import { authApi, repoApi } from '../api/services';
@@ -18,11 +18,11 @@ export const RepoSettingsPage = () => {
   const [labels, setLabels] = useState([]);
   const [labelForm, setLabelForm] = useState({ name: '', color: '#3b82f6', description: '' });
 
-  const loadLabels = () => repoApi.labels(repo._id).then(setLabels).catch(() => {});
+  const loadLabels = useCallback(() => repoApi.labels(repo._id).then(setLabels).catch(() => {}), [repo._id]);
 
   useEffect(() => {
     loadLabels();
-  }, [repo._id]);
+  }, [loadLabels]);
 
   const isOwner = useMemo(() => {
     return String(repo.owner?._id || repo.owner) === String(user?.id || user?._id);
@@ -30,7 +30,8 @@ export const RepoSettingsPage = () => {
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
+      // Avoid calling setResults if already empty to prevent re-renders
+      setResults(prev => prev.length === 0 ? prev : []);
       return;
     }
 

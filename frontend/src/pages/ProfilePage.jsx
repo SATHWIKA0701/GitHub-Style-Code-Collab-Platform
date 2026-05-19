@@ -9,7 +9,7 @@ export const ProfilePage = () => {
       <div className="stack-sm">
         <h1>{user?.username}</h1>
         <p>{user?.email}</p>
-        <div className="meta-row"><span>Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</span></div>
+        <div className="meta-row"><span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</span></div>
       </div>
     </div>
   );

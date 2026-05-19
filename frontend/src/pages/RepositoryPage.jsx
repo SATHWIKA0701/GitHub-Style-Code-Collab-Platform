@@ -52,9 +52,8 @@ export const RepositoryPage = () => {
         setRepo(null)
       );
 
-    return () =>
-      setCurrentRepo(null);
-  }, [repoId]);
+    return () => setCurrentRepo(null);
+  }, [repoId, setCurrentRepo]);
 
   if (!repo)
     return (
