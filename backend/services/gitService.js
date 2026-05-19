@@ -130,10 +130,16 @@ export const commitFiles = async (repoName, message, user = null) =>
     return await git.commit(safeMessage);
   });
 
-export const getCommitHistory = async (repoName, branch = null) => {
+export const getCommitHistory = async (repoName, skip = 0, limit = 20) => {
   const git = simpleGit(getRepoPath(repoName, true));
-  const safeBranch = branch ? assertSafeBranchName(branch) : "HEAD";
-  return await git.log([safeBranch]);
+  try {
+    const log = await git.log([`--max-count=${limit}`, `--skip=${skip}`]);
+    const totalCommitsRaw = await git.raw(['rev-list', '--count', 'HEAD']);
+    const total = parseInt(totalCommitsRaw.trim(), 10) || 0;
+    return { data: log.all, total };
+  } catch (error) {
+    return { data: [], total: 0 };
+  }
 };
 
 export const getStructuredCommits = async (repoName) => {

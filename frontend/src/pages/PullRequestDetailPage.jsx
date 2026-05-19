@@ -39,20 +39,14 @@ export const PullRequestDetailPage = () => {
   const load = async () => {
     try {
       const detail = await prApi.detail(prId);
-
       setPr(detail);
-
-      const reviewComments =
-        await prApi.comments(prId);
-
+      const reviewComments = await prApi.comments(prId);
       setComments(reviewComments);
-
       const diffData = await prApi.diff(
         detail.repoName,
         detail.sourceBranch,
         detail.targetBranch
       );
-
       setDiff(diffData.diff || '');
     } catch (error) {
       pushToast('Failed to load PR');
@@ -148,10 +142,7 @@ export const PullRequestDetailPage = () => {
       <section className="card stack-md">
         <div className="section-header">
           <h1>{pr.title}</h1>
-
-          <PRStatusBadge
-            status={pr.status}
-          />
+          <PRStatusBadge status={pr.status} />
         </div>
 
         <p>

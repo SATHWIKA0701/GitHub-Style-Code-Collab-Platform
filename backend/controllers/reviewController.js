@@ -1,9 +1,12 @@
 import * as reviewService from "../services/reviewService.js";
 import { logActivity, notifyRepoMembers } from "../utils/eventHelpers.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { getPagination } from "../utils/pagination.js";
+import {
+  emitRepoEvent,
+} from "../utils/eventHelpers.js";
 
-export const addReviewComment = async (req, res) => {
-
-  try {
+export const addReviewComment = asyncHandler(async (req, res) => {
 
     const { prId, filePath, lineNumber, comment } = req.body;
 
@@ -45,28 +48,32 @@ export const addReviewComment = async (req, res) => {
         payload: { type: "new_comment", prId: prId, commentId: created._id },
         repoId: repo._id,
       });
+      emitRepoEvent(
+  repo._id,
+  "repo_event",
+  {
+    type: "review_comment_added",
+    prId,
+    repoId: repo._id,
+    commentId: created._id,
+  }
+);
     }
 
     res.status(201).json(created);
+});
 
-  } catch (error) {
-    throw error;
-
-  }
-};
-
-export const getReviewComments = async (req, res) => {
-
-  try {
-
+export const getReviewComments = asyncHandler(async (req, res) => {
     const { prId } = req.params;
+    const { page, limit, skip } = getPagination(req.query);
 
-    const comments = await reviewService.getComments(prId);
+    const { data, total } = await reviewService.getComments(prId, skip, limit);
 
-    res.json(comments);
-
-  } catch (error) {
-    throw error;
-
-  }
-};
+    res.json({
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+});

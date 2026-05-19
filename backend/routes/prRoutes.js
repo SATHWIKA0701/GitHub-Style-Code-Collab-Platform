@@ -8,117 +8,70 @@ import archiveMiddleware from "../middleware/archiveMiddleware.js";
 
 const router = express.Router();
 
-const loadRepoFromBody = async (
-  req,
-  res,
-  next
-) => {
+const loadRepoFromBody = async (req, res, next) => {
   try {
-
     const { repoName } = req.body;
 
     if (!repoName) {
-      return res.status(400).json({
-        message: "repoName is required"
-      });
+      return res.status(400).json({ message: "repoName is required" });
     }
 
-    const repo =
-      await Repository.findOne({
-        name: repoName
-      });
+    const repo = await Repository.findOne({ name: repoName });
 
     if (!repo) {
-      return res.status(404).json({
-        message: "Repository not found"
-      });
+      return res.status(404).json({ message: "Repository not found" });
     }
 
     req.repo = repo;
-
     next();
-
   } catch (error) {
-
     next(error);
-
   }
 };
 
-const loadRepoFromPrId = async (
-  req,
-  res,
-  next
-) => {
+const loadRepoFromPrId = async (req, res, next) => {
   try {
-
     const { prId } = req.params;
 
-    const pr =
-      await PullRequest.findById(prId);
+    const pr = await PullRequest.findById(prId);
 
     if (!pr) {
-      return res.status(404).json({
-        message: "Pull Request not found"
-      });
+      return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    const repo =
-      await Repository.findOne({
-        name: pr.repoName
-      });
+    const repo = await Repository.findOne({ name: pr.repoName });
 
     if (!repo) {
-      return res.status(404).json({
-        message:
-          "Repository not found for this PR"
-      });
+      return res.status(404).json({ message: "Repository not found for this PR" });
     }
 
     req.repo = repo;
-
     next();
-
   } catch (error) {
-
     next(error);
-
   }
 };
 
-const loadRepoFromRepoNameParam =
-  async (req, res, next) => {
+const loadRepoFromRepoNameParam = async (req, res, next) => {
+  try {
+    const { repoName } = req.params;
 
-    try {
-      const { repoName } = req.params;
-
-      if (!repoName) {
-        return res.status(400).json({
-          message: "repoName is required"
-        });
-      }
-
-      const repo =
-        await Repository.findOne({
-          name: repoName
-        });
-
-      if (!repo) {
-        return res.status(404).json({
-          message: "Repository not found"
-        });
-      }
-
-      req.repo = repo;
-
-      next();
-
-    } catch (error) {
-
-      next(error);
-
+    if (!repoName) {
+      return res.status(400).json({ message: "repoName is required" });
     }
-  };
+
+    const repo = await Repository.findOne({ name: repoName });
+
+    if (!repo) {
+      return res.status(404).json({ message: "Repository not found" });
+    }
+
+    req.repo = repo;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
 // create PR
 router.post(
@@ -220,6 +173,7 @@ router.delete(
   permissionMiddleware("collaborator"),
   prController.deletePRComment
 );
+
 router.post(
   "/:prId/inline-comments",
   authMiddleware,

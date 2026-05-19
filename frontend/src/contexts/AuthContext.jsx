@@ -1,3 +1,4 @@
+//authContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { authApi } from '../api/services';
 
@@ -8,21 +9,15 @@ export const AuthProvider = ({ children }) => {
   const [ready, setReady] = useState(false);
 
   const bootstrap = async () => {
-    const token = localStorage.getItem('ccp-token');
-    if (!token) {
-      setReady(true);
-      return;
-    }
-    try {
-      const profile = await authApi.profile();
-      setUser(profile);
-    } catch {
-      localStorage.removeItem('ccp-token');
-      setUser(null);
-    } finally {
-      setReady(true);
-    }
-  };
+  try {
+    const profile = await authApi.profile();
+    setUser(profile);
+  } catch {
+    setUser(null);
+  } finally {
+    setReady(true);
+  }
+};
 
   useEffect(() => { bootstrap(); }, []);
 
@@ -36,11 +31,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (payload) => authApi.register(payload);
 
   const logout = async () => {
-    try { await authApi.logout(); } finally {
-      localStorage.removeItem('ccp-token');
-      setUser(null);
-    }
-  };
+  try {
+    await authApi.logout();
+  } finally {
+    setUser(null);
+  }
+};
 
   const refreshProfile = async () => {
     const profile = await authApi.profile();

@@ -1,3 +1,4 @@
+//Repository.js
 import mongoose from "mongoose";
 
 const collaboratorSchema = new mongoose.Schema({
@@ -73,13 +74,16 @@ const repositorySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 repositorySchema.index(
   { owner: 1, name: 1 },
   { unique: true }
 );
+repositorySchema.index({
+  owner: 1,
+  updatedAt: -1,
+});
 
 repositorySchema.index({
-  "collaborators.userId": 1
+  "collaborators.userId": 1,
 });
 export default mongoose.model("Repository", repositorySchema);

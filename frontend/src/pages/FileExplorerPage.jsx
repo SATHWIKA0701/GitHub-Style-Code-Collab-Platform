@@ -1,8 +1,9 @@
 //FileExplorerPage.jsx
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import Editor from '@monaco-editor/react';
+
+const Editor = lazy(() => import('@monaco-editor/react'));
 import { gitApi } from '../api/services';
 import { useApp } from '../contexts/AppContext';
 import { Modal } from '../components/Modal';
@@ -224,12 +225,14 @@ const upload = async (e) => {
                   <ReactMarkdown>{content}</ReactMarkdown>
                 </div>
               ) : (
-                <Editor
-                  height="65vh"
-                  theme="vs-dark"
-                  value={content}
-                  onChange={(value) => setContent(value || '')}
-                />
+                <Suspense fallback={<div className="empty-card">Loading editor...</div>}>
+                  <Editor
+                    height="65vh"
+                    theme="vs-dark"
+                    value={content}
+                    onChange={(value) => setContent(value || '')}
+                  />
+                </Suspense>
               )}
             </>
           ) : (

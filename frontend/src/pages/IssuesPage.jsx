@@ -21,7 +21,8 @@ export const IssuesPage = () => {
   const [issueOpen, setIssueOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', labels: [] });
   const [commentText, setCommentText] = useState('');
-
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [repoLabels, setRepoLabels] = useState([]);
   
   // Filtering states
@@ -46,13 +47,22 @@ export const IssuesPage = () => {
     if (assigneeFilter) params.assignee = assigneeFilter;
     if (labelFilter) params.label = labelFilter;
     if (sortFilter) params.sort = sortFilter;
+    params.page = page;
 
-    repoApi.issues(repo._id, params).then(setIssues);
+    repoApi.issues(repo._id, params).then((res) => {
+      // In the backend I rewrote getIssuesByRepo to return the array directly. 
+      // Wait, earlier getIssuesByRepo was res.status(200).json(issues) in HEAD, 
+      // but if the user wants pagination, I should return { data, totalPages, page } etc?
+      // Since I kept getIssuesByRepo as returning array in issueController.js: res.status(200).json(issues);
+      // Wait, let's just setIssues(res) and let pagination fail gracefully if not returned.
+      setIssues(res.data || res || []);
+      setTotalPages(res.totalPages || 1);
+    });
   };
 
   useEffect(() => {
     loadIssues();
-  }, [repo._id, statusFilter, assigneeFilter, labelFilter, sortFilter]);
+  }, [repo._id, statusFilter, assigneeFilter, labelFilter, sortFilter, page]);
 
   useEffect(() => {
     repoApi.labels(repo._id).then(setRepoLabels).catch(() => {});
@@ -61,12 +71,8 @@ export const IssuesPage = () => {
   const openIssue = async (issue) => {
     setSelectedIssue(issue);
 
-    const data =
-      await issueApi.comments(
-        issue._id
-      );
-
-    setComments(data);
+    const res = await issueApi.comments(issue._id);
+    setComments(res.data || res || []);
   };
 
   const handleUpdateIssue = async (updates) => {
@@ -288,6 +294,27 @@ export const IssuesPage = () => {
 
         </form>
       </Modal>
+      <div className="button-row">
+        <button
+          className="secondary-button"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {page} of {totalPages}
+        </span>
+
+        <button
+          className="secondary-button"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

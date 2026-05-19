@@ -1,3 +1,4 @@
+//RepositoriesPage.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { repoApi } from '../api/services';
@@ -5,8 +6,18 @@ import { repoApi } from '../api/services';
 export const RepositoriesPage = () => {
   const [repos, setRepos] = useState([]);
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => { repoApi.list().then(setRepos).catch(() => setRepos([])); }, []);
+  useEffect(() => {
+    repoApi
+      .list(page)
+      .then((res) => {
+        setRepos(res.data || []);
+        setTotalPages(res.totalPages || 1);
+      })
+      .catch(() => setRepos([]));
+  }, [page]);
   const filtered = useMemo(() => repos.filter((repo) => repo.name.toLowerCase().includes(query.toLowerCase())), [repos, query]);
 
   return (
@@ -25,6 +36,27 @@ export const RepositoriesPage = () => {
           </Link>
         ))}
         {!filtered.length && <div className="empty-card">No repositories match your search.</div>}
+      </div>
+      <div className="button-row">
+        <button
+          className="secondary-button"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {page} of {totalPages}
+        </span>
+
+        <button
+          className="secondary-button"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
       </div>
     </div>
   );

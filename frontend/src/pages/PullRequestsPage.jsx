@@ -11,10 +11,19 @@ export const PullRequestsPage = () => {
   const { pushToast } = useApp();
   const [prs, setPrs] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ repoName: repo.name, title: '', description: '', sourceBranch: '', targetBranch: repo.defaultBranch || 'main' });
+  const [form, setForm] = useState({
+  repoId: repo._id, title: '', description: '', sourceBranch: '', targetBranch: repo.defaultBranch || 'main' });
 
-  const load = () => prApi.list(repo.name).then(setPrs);
-  useEffect(() => { load(); }, [repo.name]);
+  const load = () => prApi.list(repo._id).then((res) => setPrs(res.data));
+  useEffect(() => { load(); }, [repo._id]);
+  
+  useEffect(() => {
+  setForm((prev) => ({
+    ...prev,
+    repoId: repo._id,
+    targetBranch: repo.defaultBranch || 'main',
+  }));
+}, [repo]);
 
   return (
     <div className="stack-lg">

@@ -1,12 +1,6 @@
-import {
-  useEffect,
-  useState,
-} from 'react';
-
+import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-
 import { gitApi } from '../api/services';
-
 import { CommitGraph } from '../components/CommitGraph';
 
 export const CommitsPage = () => {
@@ -18,16 +12,20 @@ export const CommitsPage = () => {
   const [selectedCommit, setSelectedCommit] = useState(null);
   const [commitDiff, setCommitDiff] = useState('');
 
-  const loadCommits = async (branch = '') => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const loadCommits = async (branch = '', currentPage = 1) => {
     try {
       let data;
-
       if (branch) {
         data = await gitApi.commitsByBranch(repo.name, branch);
         setCommits(data.all || []);
+        setTotalPages(1); // No pagination for branches yet
       } else {
-        data = await gitApi.structuredCommits(repo.name);
-        setCommits(data || []);
+        const res = await gitApi.commits(repo.name, currentPage);
+        setCommits(res.data || []);
+        setTotalPages(res.totalPages || 1);
       }
     } catch (error) {
       setCommits([]);
@@ -35,7 +33,7 @@ export const CommitsPage = () => {
   };
 
   useEffect(() => {
-    loadCommits();
+    loadCommits(selectedBranch, page);
 
     gitApi
       .branches(repo.name)
@@ -45,7 +43,7 @@ export const CommitsPage = () => {
       .catch(() => {
         setBranches([]);
       });
-  }, [repo.name]);
+  }, [repo.name, page, selectedBranch]);
 
   const openCommit = async (commit) => {
     try {
@@ -73,7 +71,7 @@ export const CommitsPage = () => {
             onChange={(e) => {
               const branch = e.target.value;
               setSelectedBranch(branch);
-              loadCommits(branch);
+              setPage(1);
             }}
           >
             <option value="">All Branches</option>
@@ -87,16 +85,14 @@ export const CommitsPage = () => {
         </div>
       </div>
 
-      {commits.length > 0 && (
+      {commits.length > 0 && !selectedBranch && (
         <CommitGraph
-          commits={commits.map(
-            (commit) => ({
-              hash: commit.hash,
-              message: commit.message || commit.subject,
-              author: commit.author_name || commit.authorName,
-              date: commit.date,
-            })
-          )}
+          commits={commits.map((commit) => ({
+            hash: commit.hash,
+            message: commit.message || commit.subject,
+            author: commit.author_name || commit.authorName,
+            date: commit.date,
+          }))}
         />
       )}
 
@@ -137,6 +133,30 @@ export const CommitsPage = () => {
           </div>
         )}
       </div>
+
+      {!selectedBranch && (
+        <div className="button-row">
+          <button
+            className="secondary-button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Previous
+          </button>
+
+          <span>
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            className="secondary-button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {selectedCommit && (
         <div className="card stack-md">

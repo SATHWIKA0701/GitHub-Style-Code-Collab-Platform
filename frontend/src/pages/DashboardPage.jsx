@@ -9,8 +9,8 @@ export const DashboardPage = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    repoApi.list().then(setRepos).catch(() => setRepos([]));
-    notificationApi.list().then((data) => setNotifications(data.notifications || [])).catch(() => setNotifications([]));
+    repoApi.list().then((res) => setRepos(res.data)).catch(() => setRepos([]));
+    notificationApi.list().then((res) => setNotifications(res.data || [])).catch(() => setNotifications([]));
   }, []);
 
   const recentRepos = useMemo(() => repos.slice(0, 5), [repos]);

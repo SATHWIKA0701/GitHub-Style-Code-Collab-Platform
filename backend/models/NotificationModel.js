@@ -7,27 +7,54 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
     repoId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Repository",
       default: null,
     },
+
+    resourceType: {
+      type: String,
+      enum: [
+        "pr",
+        "issue",
+        "comment",
+        "commit",
+        "invitation",
+      ],
+      default: null,
+    },
+
+    resourceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+
     message: {
       type: String,
       required: true,
       trim: true,
     },
+
+    type: {
     type: {
       type: String,
-      enum: ["new_pr", "pr_merged", "new_comment", "new_issue", "commit_pushed"],
+      enum: [
+        "new_pr",
+        "pr_merged",
+        "new_comment",
+        "new_issue",
+        "commit_pushed",
+        "pr_reviewed",
+        "issue_assigned",
+        "pr_approved",
+        "collaborator_added",
+        "repo_invitation",
+        "repo_invitation_accepted",
+        "repo_invitation_declined",
+      ],
       required: true,
-    },
-    resourceType: {
-      type: String,
-      enum: ["pr", "issue", "commit", "repo"]
-    },
-    resourceId: {
-      type: mongoose.Schema.Types.ObjectId
     },
     isRead: {
       type: Boolean,
@@ -39,7 +66,15 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({
   userId: 1,
   isRead: 1,
-  createdAt: -1
+  createdAt: -1,
 });
 
-export default mongoose.model("Notification", notificationSchema);
+notificationSchema.index({
+  repoId: 1,
+  createdAt: -1,
+});
+
+export default mongoose.model(
+  "Notification",
+  notificationSchema
+);

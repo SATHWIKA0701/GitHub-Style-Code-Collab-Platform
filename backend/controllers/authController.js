@@ -2,6 +2,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -10,12 +11,7 @@ const buildCookieOptions = () => ({
   httpOnly: true,
 
   secure: NODE_ENV === "production",
-
-  sameSite:
-    NODE_ENV === "production"
-      ? "None"
-      : "Strict",
-
+  sameSite: NODE_ENV === "production" ? "None" : "Strict",
   maxAge: ONE_DAY_MS,
 
   path: "/",
@@ -29,7 +25,7 @@ const toSafeUser = (user) => ({
   updatedAt: user.updatedAt,
 });
 
-export const register = async (req, res) => {
+export const register = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
@@ -71,49 +67,42 @@ export const register = async (req, res) => {
     }
     return res.status(500).json({ message: err.message });
   }
-};
+});
 
-export const login = async (req, res) => {
+export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  try {
-    if (!email || typeof email !== "string") return res.status(400).json({ message: "Email is required" });
-    if (!password || typeof password !== "string") return res.status(400).json({ message: "Password is required" });
+  if (!email || typeof email !== "string") return res.status(400).json({ message: "Email is required" });
+  if (!password || typeof password !== "string") return res.status(400).json({ message: "Password is required" });
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(404).json({ message: "User not found" });
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) return res.status(404).json({ message: "User not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign(
-      {
-        id: user._id.toString(),
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
-    res.cookie("token", token, buildCookieOptions());
-    res.json({ message: "Login successful", user: toSafeUser(user), token });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+  const token = jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: "1d" });
+  res.cookie("token", token, buildCookieOptions());
+  res.json({ message: "Login successful", user: toSafeUser(user), token });
+});
 
 export const logout = (req, res) => {
-  res.clearCookie("token", buildCookieOptions());
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "Lax" : "Strict",
+  });
+
   res.json({ message: "Logout successful" });
 };
 
-export const getProfile = async (req, res) => {
+export const getProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   if (!user) return res.status(404).json({ message: "User not found" });
   const repoCount = req.user.repoCount ?? undefined;
   res.json({ ...toSafeUser(user), repoCount });
-};
+});
 
-export const updateProfile = async (req, res) => {
+export const updateProfile = asyncHandler(async (req, res) => {
   const { username, email, currentPassword, newPassword } = req.body || {};
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "User not found" });
@@ -146,9 +135,9 @@ export const updateProfile = async (req, res) => {
 
   await user.save();
   res.json({ message: "Profile updated", user: toSafeUser(user) });
-};
+});
 
-export const searchUsers = async (req, res) => {
+export const searchUsers = asyncHandler(async (req, res) => {
   const q = String(req.query.q || "").trim();
   if (!q) return res.json([]);
   const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -158,10 +147,10 @@ export const searchUsers = async (req, res) => {
     _id: { $ne: req.user.id },
   }).select("_id username email createdAt").limit(8);
   res.json(users.map((u) => ({ id: u._id, username: u.username, email: u.email, createdAt: u.createdAt })));
-};
+});
 
-export const getUserById = async (req, res) => {
+export const getUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id).select("_id username email createdAt updatedAt");
   if (!user) return res.status(404).json({ message: "User not found" });
   res.json({ id: user._id, username: user.username, email: user.email, createdAt: user.createdAt, updatedAt: user.updatedAt });
-};
+});

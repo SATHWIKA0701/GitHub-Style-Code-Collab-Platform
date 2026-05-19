@@ -7,6 +7,7 @@ import Repository from "../models/Repository.js";
 
 const router = express.Router();
 
+// Loads repo via PR's normalized repoId reference (from route param :prId)
 const loadRepoFromPrIdParam = async (req, res, next) => {
   try {
     const { prId } = req.params;
@@ -17,7 +18,8 @@ const loadRepoFromPrIdParam = async (req, res, next) => {
       return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    const repo = await Repository.findOne({ name: pr.repoName });
+    // Use normalized repoId reference instead of repoName
+    const repo = await Repository.findById(pr.repoId);
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found for this PR" });
@@ -30,6 +32,7 @@ const loadRepoFromPrIdParam = async (req, res, next) => {
   }
 };
 
+// Loads repo via PR's normalized repoId reference (from request body prId)
 const loadRepoFromPrIdBody = async (req, res, next) => {
   try {
     const { prId } = req.body;
@@ -44,7 +47,8 @@ const loadRepoFromPrIdBody = async (req, res, next) => {
       return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    const repo = await Repository.findOne({ name: pr.repoName });
+    // Use normalized repoId reference instead of repoName
+    const repo = await Repository.findById(pr.repoId);
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found for this PR" });

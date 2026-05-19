@@ -20,6 +20,7 @@ import notificationRoutes from "./routes/notificationRoute.js";
 import prRoutes from "./routes/prRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import gitRoutes from "./routes/gitRoutes.js";
+import invitationRoutes from "./routes/invitationRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -73,6 +74,7 @@ app.use("/repos", repoRoutes);
 app.use("/", issueRoutes);
 app.use("/api", activityRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api", invitationRoutes);
 app.use("/api/pr", prRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/git", gitRoutes);

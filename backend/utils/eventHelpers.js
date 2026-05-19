@@ -23,18 +23,32 @@ export const createNotification = async ({
   message,
   type,
   repoId = null,
+
+  resourceType = null,
+  resourceId = null,
 }) => {
   return await Notification.create({
     userId,
     message,
     type,
     repoId,
+
+    resourceType,
+    resourceId,
   });
 };
 
-export const emitRepoEvent = (repoId, eventName, payload) => {
+export const emitRepoEvent = (
+  repoId,
+  eventName,
+  payload
+) => {
   const io = getIO();
-  io.to(`repo_${repoId}`).emit(eventName, payload);
+
+  io.to(`repo_${repoId}`).emit(
+    eventName,
+    payload
+  );
 };
 
 export const emitUserNotification = (userId, payload) => {
@@ -70,13 +84,19 @@ export const notifyRepoMembers = async ({
   message,
   payload,
   repoId,
+
+  resourceType = null,
+  resourceId = null,
 }) => {
   const members = getRepoMemberUserIds(repo);
-  const recipients = members.filter((id) => id !== String(excludeUserId));
 
-  const effectiveRepoId = repoId || repo?._id || null;
+  const recipients = members.filter(
+    (id) => id !== String(excludeUserId)
+  );
 
-  // Create notifications in DB
+  const effectiveRepoId =
+    repoId || repo?._id || null;
+
   const notifications = await Promise.all(
     recipients.map((userId) =>
       createNotification({
@@ -84,13 +104,20 @@ export const notifyRepoMembers = async ({
         message,
         type,
         repoId: effectiveRepoId,
+
+        resourceType,
+        resourceId,
       })
     )
   );
 
-  // Notify online users via socket
   recipients.forEach((userId, idx) => {
-    emitUserNotification(userId, payload || { type, message, notification: notifications[idx] });
+    emitUserNotification(userId, {
+      type,
+      message,
+      notification: notifications[idx],
+      ...(payload || {}),
+    });
   });
 
   return notifications;

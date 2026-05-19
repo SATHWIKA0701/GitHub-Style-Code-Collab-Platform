@@ -5,6 +5,8 @@ import {
   getRepoById,
   deleteRepo,
   addCollaborator,
+  removeCollaborator,
+  updateCollaboratorRole,
   getPublicRepos,
   getRepoByAlias,
   toggleArchiveRepo,
@@ -36,6 +38,8 @@ router.get("/public", getPublicRepos);
 // Protected routes
 router.post("/", authMiddleware, createRepo);
 router.delete("/:id", authMiddleware, deleteRepo);
+
+// Collaborator management
 router.post(
   "/:id/collaborators",
   authMiddleware,
@@ -43,6 +47,22 @@ router.post(
   permissionMiddleware("owner"),
   addCollaborator
 );
+router.delete(
+  "/:id/collaborators/:userId",
+  authMiddleware,
+  loadRepoById,
+  permissionMiddleware("owner"),
+  removeCollaborator
+);
+router.put(
+  "/:id/collaborators/:userId",
+  authMiddleware,
+  loadRepoById,
+  permissionMiddleware("owner"),
+  updateCollaboratorRole
+);
+
+// Archive management
 router.put(
   "/:id/archive",
   authMiddleware,
