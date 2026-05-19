@@ -28,8 +28,8 @@ export const LoginPage = () => {
     <div className="auth-page">
       <form className="auth-card card" onSubmit={submit}>
         <h2>Sign in</h2>
-        <FormField label="Email"><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
-        <FormField label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></FormField>
+        <FormField label="Email"><input type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
+        <FormField label="Password"><input type="password" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></FormField>
         {error ? <div className="error-banner">{error}</div> : null}
         <button className="primary-button" disabled={loading}>{loading ? 'Signing in…' : 'Login'}</button>
         <p className="subtle">New here? <Link to="/register">Create your account</Link></p>

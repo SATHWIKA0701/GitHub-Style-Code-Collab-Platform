@@ -33,6 +33,14 @@ const repositorySchema = new mongoose.Schema(
       trim: true,
       default: "main",
     },
+    issueCount: {
+      type: Number,
+      default: 0,
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     collaborators: [collaboratorSchema],
     status: {

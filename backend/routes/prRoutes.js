@@ -4,6 +4,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import permissionMiddleware from "../middleware/permissionMiddleware.js";
 import Repository from "../models/Repository.js";
 import PullRequest from "../models/PullRequest.js";
+import archiveMiddleware from "../middleware/archiveMiddleware.js";
 
 const router = express.Router();
 
@@ -89,7 +90,6 @@ const loadRepoFromRepoNameParam =
   async (req, res, next) => {
 
     try {
-
       const { repoName } = req.params;
 
       if (!repoName) {
@@ -126,6 +126,7 @@ router.post(
   authMiddleware,
   loadRepoFromBody,
   permissionMiddleware("collaborator"),
+  archiveMiddleware,
   prController.createPullRequest
 );
 
@@ -153,6 +154,7 @@ router.put(
   authMiddleware,
   loadRepoFromPrId,
   permissionMiddleware("owner"),
+  archiveMiddleware,
   prController.mergePullRequest
 );
 

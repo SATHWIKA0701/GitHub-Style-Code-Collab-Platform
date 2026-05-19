@@ -25,6 +25,8 @@ const activitySchema = new mongoose.Schema(
         "issue_closed",
         "collaborator_added",
         "comment_added",
+        "repo_archived",
+        "repo_unarchived",
       ],
       required: true,
     },

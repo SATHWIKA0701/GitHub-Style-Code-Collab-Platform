@@ -28,9 +28,9 @@ export const RegisterPage = () => {
     <div className="auth-page">
       <form className="auth-card card" onSubmit={submit}>
         <h2>Create account</h2>
-        <FormField label="Username"><input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></FormField>
-        <FormField label="Email"><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
-        <FormField label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} /></FormField>
+        <FormField label="Username"><input type="text" autoComplete="username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} /></FormField>
+        <FormField label="Email"><input type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
+        <FormField label="Password"><input type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} /></FormField>
         {error ? <div className="error-banner">{error}</div> : null}
         <button className="primary-button" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
         <p className="subtle">Already have an account? <Link to="/login">Login</Link></p>
