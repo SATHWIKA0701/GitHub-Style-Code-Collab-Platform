@@ -14,15 +14,22 @@ export const repoApi = {
   create: (payload) => http.post('/repos', payload).then((r) => r.data),
   detail: (id) => http.get(`/repos/${id}`).then((r) => r.data),
   addCollaborator: (id, payload) => http.post(`/repos/${id}/collaborators`, payload).then((r) => r.data),
-  issues: (id) => http.get(`/repos/${id}/issues`).then((r) => r.data),
+  issues: (id, params) => http.get(`/repos/${id}/issues`, { params }).then((r) => r.data),
   createIssue: (id, payload) => http.post(`/repos/${id}/issues`, payload).then((r) => r.data),
   activity: (id) => http.get(`/api/repos/${id}/activity`).then((r) => r.data),
+  archive: (id) => http.put(`/repos/${id}/archive`).then((r) => r.data),
+  labels: (id) => http.get(`/repos/${id}/labels`).then((r) => r.data),
+  createLabel: (id, payload) => http.post(`/repos/${id}/labels`, payload).then((r) => r.data),
+  deleteLabel: (id, labelId) => http.delete(`/repos/${id}/labels/${labelId}`).then((r) => r.data),
 };
 
 export const issueApi = {
   comments: (issueId) => http.get(`/issues/${issueId}/comments`).then((r) => r.data),
   addComment: (issueId, payload) => http.post(`/issues/${issueId}/comments`, payload).then((r) => r.data),
   close: (issueId) => http.put(`/issues/${issueId}/close`).then((r) => r.data),
+  reopen: (issueId) => http.put(`/issues/${issueId}/reopen`).then((r) => r.data),
+  update: (issueId, payload) => http.put(`/issues/${issueId}`, payload).then((r) => r.data),
+  deleteComment: (issueId, commentId) => http.delete(`/issues/${issueId}/comments/${commentId}`).then((r) => r.data),
 };
 
 export const prApi = {

@@ -28,7 +28,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (payload) => {
     const data = await authApi.login(payload);
-    if (data.token) localStorage.setItem('ccp-token', data.token);
     const profile = await authApi.profile();
     setUser(profile);
     return data;

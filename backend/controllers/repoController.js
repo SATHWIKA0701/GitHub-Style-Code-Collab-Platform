@@ -7,6 +7,7 @@ import ReviewComment from "../models/ReviewComment.js";
 import Notification from "../models/NotificationModel.js";
 import Activity from "../models/ActivityModel.js";
 import mongoose from "mongoose";
+import User from "../models/User.js";
 import { initRepository } from "../services/gitService.js";
 
 const repoPopulate = [
@@ -47,9 +48,27 @@ export const createRepo = async (req, res) => {
 
 export const getAllRepos = async (req, res) => {
   const userId = req.user.id;
-  const repos = await Repository.find({ $or: [{ owner: userId }, { "collaborators.userId": userId }] })
+
+  const repos = await Repository.find({
+    $or: [
+      { owner: userId },
+      { "collaborators.userId": userId },
+      { visibility: "public" },
+    ],
+  })
     .populate(repoPopulate)
     .sort({ updatedAt: -1 });
+
+  res.status(200).json(repos);
+};
+
+export const getPublicRepos = async (req, res) => {
+  const repos = await Repository.find({
+    visibility: "public",
+  })
+    .populate(repoPopulate)
+    .sort({ updatedAt: -1 });
+
   res.status(200).json(repos);
 };
 
@@ -59,6 +78,56 @@ export const getRepoById = async (req, res) => {
   if (!repo) return res.status(404).json({ message: "Repository not found" });
   const hydrated = await Repository.findById(repo._id).populate(repoPopulate);
   res.status(200).json(hydrated);
+};
+
+export const getRepoByAlias = async (req, res) => {
+  const { username, repoName } = req.params;
+
+  // Find user
+  const user = await User.findOne({
+    username: {
+      $regex: new RegExp(`^${username.trim()}$`, "i"),
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  // Find repository owned by that user
+  const repo = await Repository.findOne({
+    owner: user._id,
+    name: repoName.trim(),
+  }).populate(repoPopulate);
+
+  if (!repo) {
+    return res.status(404).json({
+      message: "Repository not found",
+    });
+  }
+
+  // Private repo protection
+  const isOwner =
+    String(repo.owner._id) === String(req.user.id);
+
+  const collaborator = repo.collaborators.find(
+    (c) => String(c.userId._id) === String(req.user.id)
+  );
+
+  const hasAccess =
+    repo.visibility === "public" ||
+    isOwner ||
+    collaborator;
+
+  if (!hasAccess) {
+    return res.status(403).json({
+      message: "Access denied",
+    });
+  }
+
+  return res.status(200).json(repo);
 };
 
 export const deleteRepo = async (req, res) => {
@@ -108,7 +177,46 @@ export const addCollaborator = async (req, res) => {
     message: `Collaborator added/updated`,
     metadata: { targetUserId: String(userId), role: requestedRole, repoId: String(repo._id) },
   });
-
   const hydrated = await Repository.findById(repo._id).populate(repoPopulate);
   return res.status(200).json(hydrated);
+};
+
+export const toggleArchiveRepo = async (req, res) => {
+  const repo = req.repo;
+
+  if (!repo) {
+    return res.status(404).json({
+      message: "Repository not found",
+    });
+  }
+
+  // Toggle archive state
+  repo.isArchived = !repo.isArchived;
+
+  await repo.save();
+
+  await logActivity({
+    repoId: repo._id,
+    userId: req.user.id,
+    eventType: repo.isArchived
+      ? "repo_archived"
+      : "repo_unarchived",
+    message: repo.isArchived
+      ? `Repository archived: ${repo.name}`
+      : `Repository unarchived: ${repo.name}`,
+    metadata: {
+      repoId: String(repo._id),
+      archived: repo.isArchived,
+    },
+  });
+
+  const hydrated = await Repository.findById(repo._id)
+    .populate(repoPopulate);
+
+  return res.status(200).json({
+    message: repo.isArchived
+      ? "Repository archived successfully"
+      : "Repository unarchived successfully",
+    repository: hydrated,
+  });
 };

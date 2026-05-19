@@ -4,6 +4,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import permissionMiddleware from "../middleware/permissionMiddleware.js";
 import Repository from "../models/Repository.js";
 import PullRequest from "../models/PullRequest.js";
+import archiveMiddleware from "../middleware/archiveMiddleware.js";
 
 const router = express.Router();
 
@@ -41,9 +42,9 @@ const loadRepoFromRepoNameParam = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-router.post("/", authMiddleware, loadRepoFromBody, permissionMiddleware("collaborator"), prController.createPullRequest);
+router.post("/", authMiddleware, loadRepoFromBody, permissionMiddleware("collaborator"),archiveMiddleware, prController.createPullRequest);
 router.get("/repo/:repoName", authMiddleware, loadRepoFromRepoNameParam, permissionMiddleware("viewer"), prController.getPullRequests);
 router.get("/item/:prId", authMiddleware, loadRepoFromPrId, permissionMiddleware("viewer"), prController.getPullRequestById);
-router.put("/:prId/merge", authMiddleware, loadRepoFromPrId, permissionMiddleware("owner"), prController.mergePullRequest);
+router.put("/:prId/merge", authMiddleware, loadRepoFromPrId, permissionMiddleware("owner"), archiveMiddleware, prController.mergePullRequest);
 
 export default router;

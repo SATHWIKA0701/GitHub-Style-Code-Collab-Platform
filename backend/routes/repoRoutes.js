@@ -5,9 +5,12 @@ import {
   getRepoById,
   deleteRepo,
   addCollaborator,
+  getPublicRepos,
+  getRepoByAlias,
+  toggleArchiveRepo,
 } from "../controllers/repoController.js";
 
-import authMiddleware from "../middleware/authMiddleware.js"; // ✅ ADD THIS
+import authMiddleware from "../middleware/authMiddleware.js";
 import permissionMiddleware from "../middleware/permissionMiddleware.js";
 import Repository from "../models/Repository.js";
 
@@ -27,7 +30,10 @@ const loadRepoById = async (req, res, next) => {
   }
 };
 
-// 🔒 Protected routes
+// Public routes
+router.get("/public", getPublicRepos);
+
+// Protected routes
 router.post("/", authMiddleware, createRepo);
 router.delete("/:id", authMiddleware, deleteRepo);
 router.post(
@@ -37,9 +43,17 @@ router.post(
   permissionMiddleware("owner"),
   addCollaborator
 );
+router.put(
+  "/:id/archive",
+  authMiddleware,
+  loadRepoById,
+  permissionMiddleware("owner"),
+  toggleArchiveRepo
+);
 
-// 🔒 Protected reads (auth + membership)
+// Protected reads
 router.get("/", authMiddleware, getAllRepos);
+router.get("/alias/:username/:repoName", authMiddleware, getRepoByAlias);
 router.get("/:id", authMiddleware, loadRepoById, permissionMiddleware("viewer"), getRepoById);
 
 export default router;

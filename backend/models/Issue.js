@@ -19,6 +19,10 @@ const issueSchema = new mongoose.Schema(
       ref: "Repository",
       required: true,
     },
+    issueNumber: {
+      type: Number,
+      required: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -28,8 +32,25 @@ const issueSchema = new mongoose.Schema(
       enum: ["open", "closed"],
       default: "open",
     },
+    labels: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Label",
+      },
+    ],
+    assignees: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
+);
+
+issueSchema.index(
+  { repoId: 1, issueNumber: 1 },
+  { unique: true }
 );
 
 export default mongoose.model("Issue", issueSchema);
