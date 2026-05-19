@@ -38,7 +38,6 @@ const notificationSchema = new mongoose.Schema(
     },
 
     type: {
-    type: {
       type: String,
       enum: [
         "new_pr",
