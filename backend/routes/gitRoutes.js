@@ -1,5 +1,6 @@
 //gitRoutes.js
 import express from "express";
+import mongoose from "mongoose";
 import multer from "multer";
 import * as gitController from "../controllers/gitController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -54,7 +55,13 @@ const upload = multer({
 });
 const loadRepoByName = async (repoName) => {
   if (!repoName) throw new Error("repoName is required");
-  const repo = await Repository.findOne({ name: String(repoName).trim() });
+  let repo;
+  if (mongoose.Types.ObjectId.isValid(repoName)) {
+    repo = await Repository.findById(repoName);
+  }
+  if (!repo) {
+    repo = await Repository.findOne({ name: String(repoName).trim() });
+  }
   if (!repo) {
     const err = new Error("Repository not found");
     err.status = 404;

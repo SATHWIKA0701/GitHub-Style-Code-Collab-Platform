@@ -233,6 +233,35 @@ export const reopenPullRequest = asyncHandler(async (req, res) => {
 
   await pr.save();
 
+  const repo = req.repo;
+  if (repo) {
+    await logActivity({
+      repoId: repo._id,
+      userId: req.user.id,
+      eventType: "pull_request_reopened",
+      message: `PR reopened: ${pr.title}`,
+      metadata: { prId: String(pr._id) }
+    });
+
+    await notifyRepoMembers({
+      repo,
+      excludeUserId: req.user.id,
+      type: "pr_reopened",
+      message: `PR reopened in ${repo.name}: ${pr.title}`,
+      payload: {
+        type: "pr_reopened",
+        prId: String(pr._id),
+        title: pr.title
+      },
+      repoId: repo._id
+    });
+
+    emitRepoEvent(repo._id, "pr_reopened", {
+      prId: pr._id,
+      status: pr.status
+    });
+  }
+
   res.json({ message: "Pull Request reopened successfully" });
 });
 

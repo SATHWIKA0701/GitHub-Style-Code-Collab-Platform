@@ -230,18 +230,22 @@ export const generateDiff = (oldContent, newContent) =>
   diffLines(oldContent, newContent);
 
 export const getBranchDiff = async (repoName, sourceBranch, targetBranch) => {
-  const safeSourceBranch = assertSafeBranchName(sourceBranch);
-  const safeTargetBranch = assertSafeBranchName(targetBranch);
+  try {
+    const safeSourceBranch = assertSafeBranchName(sourceBranch);
+    const safeTargetBranch = assertSafeBranchName(targetBranch);
 
-  const git = simpleGit(getRepoPath(repoName, true));
+    const git = simpleGit(getRepoPath(repoName, true));
 
-  const base = await git.raw([
-    "merge-base",
-    safeTargetBranch,
-    safeSourceBranch,
-  ]);
+    const base = await git.raw([
+      "merge-base",
+      safeTargetBranch,
+      safeSourceBranch,
+    ]);
 
-  return await git.raw(["diff", `${base.trim()}..${safeSourceBranch}`]);
+    return await git.raw(["diff", `${base.trim()}..${safeSourceBranch}`]);
+  } catch (error) {
+    return `No diff available or git error: ${error.message}`;
+  }
 };
 
 export const getBranches = async (repoName) => {

@@ -110,6 +110,12 @@ async function runTests() {
   const prId = res.data._id || res.data.pr?._id || res.data.pullRequest?._id;
   console.log('PR created! ID:', prId);
 
+  // 7.1 Fetching Diff
+  console.log('\\n7.1 Fetching branch diff...');
+  res = await fetchAPI(`/api/git/diff?repoName=${repoName}&sourceBranch=feature-test&targetBranch=main`);
+  if (res.status !== 200) { console.error('Get diff failed', res.data); process.exit(1); }
+  console.log('Diff fetched successfully! Content:', res.data.diff || '(empty)');
+
   // 7.5 Approve PR
   console.log('\\n7.5 Approving Pull Request...');
   res = await fetchAPI(`/api/pr/${prId}/review`, {
@@ -118,6 +124,21 @@ async function runTests() {
   });
   if (res.status !== 200 && res.status !== 201) { console.error('Approve PR failed', res.data); process.exit(1); }
   console.log('PR approved successfully!');
+
+  // 7.6 Adding Comment
+  console.log('\\n7.6 Adding review comment...');
+  res = await fetchAPI(`/api/review/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ prId, comment: 'This is a test comment', filePath: 'test.txt', lineNumber: 1 })
+  });
+  if (res.status !== 200 && res.status !== 201) { console.error('Add comment failed', res.data); process.exit(1); }
+  console.log('Review comment added successfully!');
+
+  // 7.7 Fetching Comments
+  console.log('\\n7.7 Fetching comments...');
+  res = await fetchAPI(`/api/review/${prId}`);
+  if (res.status !== 200) { console.error('Get comments failed', res.data); process.exit(1); }
+  console.log('Comments fetched successfully! Total:', res.data.total);
 
   // 8. Merge PR
   console.log('\\n8. Merging Pull Request...');

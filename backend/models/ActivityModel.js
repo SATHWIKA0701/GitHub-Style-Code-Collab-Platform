@@ -21,6 +21,8 @@ const activitySchema = new mongoose.Schema(
         "commit_pushed",
         "branch_created",
         "pull_request_opened",
+        "pull_request_closed",
+        "pull_request_reopened",
         "pull_request_merged",
         "issue_created",
         "issue_closed",
