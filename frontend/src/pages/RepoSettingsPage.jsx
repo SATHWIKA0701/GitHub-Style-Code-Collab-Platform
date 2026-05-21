@@ -1,13 +1,15 @@
-// RepoSettingsPage.jsx
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
-import { authApi, repoApi,invitationApi } from '../api/services';
+import { authApi, repoApi, invitationApi } from '../api/services';
 import { FormField } from '../components/FormField';
+import { Modal } from '../components/Modal';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 
 export const RepoSettingsPage = () => {
+  const navigate = useNavigate();
+
   const { repo, refreshRepo } = useOutletContext();
   const { user } = useAuth();
   const { pushToast } = useApp();
@@ -17,9 +19,20 @@ export const RepoSettingsPage = () => {
   const [role, setRole] = useState('collaborator');
 
   const [labels, setLabels] = useState([]);
-  const [labelForm, setLabelForm] = useState({ name: '', color: '#3b82f6', description: '' });
+  const [labelForm, setLabelForm] = useState({
+    name: '',
+    color: '#3b82f6',
+    description: '',
+  });
 
-  const loadLabels = useCallback(() => repoApi.labels(repo._id).then(setLabels).catch(() => {}), [repo._id]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteName, setDeleteName] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const loadLabels = useCallback(
+    () => repoApi.labels(repo._id).then(setLabels).catch(() => {}),
+    [repo._id]
+  );
 
   useEffect(() => {
     loadLabels();
@@ -31,8 +44,7 @@ export const RepoSettingsPage = () => {
 
   useEffect(() => {
     if (!query.trim()) {
-      // Avoid calling setResults if already empty to prevent re-renders
-      setResults(prev => prev.length === 0 ? prev : []);
+      setResults((prev) => (prev.length === 0 ? prev : []));
       return;
     }
 
@@ -48,13 +60,18 @@ export const RepoSettingsPage = () => {
 
   const handleCreateLabel = async (e) => {
     e.preventDefault();
+
     try {
       await repoApi.createLabel(repo._id, labelForm);
       pushToast('Label created');
-      setLabelForm({ name: '', color: '#3b82f6', description: '' });
+      setLabelForm({
+        name: '',
+        color: '#3b82f6',
+        description: '',
+      });
       loadLabels();
     } catch (error) {
-      pushToast(error.response?.data?.message || 'Error creating label');
+      pushToast(error.message || 'Error creating label');
     }
   };
 
@@ -64,11 +81,11 @@ export const RepoSettingsPage = () => {
       pushToast('Label deleted');
       loadLabels();
     } catch (error) {
-      pushToast(error.response?.data?.message || 'Error deleting label');
+      pushToast(error.message || 'Error deleting label');
     }
   };
 
-  const addCollaborator = async (userId) => {
+  const sendInvitation = async (userId) => {
     if (!userId) {
       pushToast('Invalid user selected');
       return;
@@ -76,17 +93,16 @@ export const RepoSettingsPage = () => {
 
     try {
       await invitationApi.send(repo._id, {
-  receiverId: userId,
-  role,
-});
+        receiverId: userId,
+        role,
+      });
 
-      pushToast('Collaborator added');
-      await refreshRepo();
+      pushToast('Invitation sent successfully');
 
       setQuery('');
       setResults([]);
     } catch (err) {
-      pushToast(err.message);
+      pushToast(err.message || 'Failed to send invitation');
     }
   };
 
@@ -120,6 +136,27 @@ export const RepoSettingsPage = () => {
       await refreshRepo();
     } catch (err) {
       pushToast(err.message);
+    }
+  };
+
+  const confirmDeleteRepo = async () => {
+    if (deleteName.trim() !== repo.name) {
+      pushToast('Repository name does not match');
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await repoApi.delete(repo._id);
+
+      pushToast('Repository deleted successfully');
+
+      navigate('/repositories');
+    } catch (err) {
+      pushToast(err.message || 'Failed to delete repository');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -209,7 +246,7 @@ export const RepoSettingsPage = () => {
 
                   <button
                     className="primary-button small"
-                    onClick={() => addCollaborator(targetUserId)}
+                    onClick={() => sendInvitation(targetUserId)}
                     disabled={!targetUserId}
                   >
                     Send Invite
@@ -227,47 +264,221 @@ export const RepoSettingsPage = () => {
 
       <div className="card stack-md">
         <h3>Labels</h3>
-        <form onSubmit={handleCreateLabel} className="list-row compact" style={{ alignItems: 'flex-end' }}>
-          <FormField label="Name"><input value={labelForm.name} onChange={(e) => setLabelForm({ ...labelForm, name: e.target.value })} required placeholder="bug" /></FormField>
-          <FormField label="Color"><input type="color" value={labelForm.color} onChange={(e) => setLabelForm({ ...labelForm, color: e.target.value })} required style={{ width: '50px', padding: 0 }} /></FormField>
-          <FormField label="Description"><input value={labelForm.description} onChange={(e) => setLabelForm({ ...labelForm, description: e.target.value })} placeholder="Something isn't working" /></FormField>
-          <button type="submit" className="primary-button small">Create</button>
+
+        <form
+          onSubmit={handleCreateLabel}
+          className="list-row compact"
+          style={{
+            alignItems: 'flex-end',
+          }}
+        >
+          <FormField label="Name">
+            <input
+              value={labelForm.name}
+              onChange={(e) =>
+                setLabelForm({
+                  ...labelForm,
+                  name: e.target.value,
+                })
+              }
+              required
+              placeholder="bug"
+            />
+          </FormField>
+
+          <FormField label="Color">
+            <input
+              type="color"
+              value={labelForm.color}
+              onChange={(e) =>
+                setLabelForm({
+                  ...labelForm,
+                  color: e.target.value,
+                })
+              }
+              required
+              style={{
+                width: '50px',
+                padding: 0,
+              }}
+            />
+          </FormField>
+
+          <FormField label="Description">
+            <input
+              value={labelForm.description}
+              onChange={(e) =>
+                setLabelForm({
+                  ...labelForm,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Something isn't working"
+            />
+          </FormField>
+
+          <button
+            type="submit"
+            className="primary-button small"
+          >
+            Create
+          </button>
         </form>
+
         <div className="list-stack">
-          {labels.map(l => (
-            <div key={l._id} className="list-row compact">
+          {labels.map((label) => (
+            <div key={label._id} className="list-row compact">
               <div>
-                <span className="pill" style={{ backgroundColor: l.color, color: '#fff', border: 'none' }}>{l.name}</span>
-                <p>{l.description}</p>
+                <span
+                  className="pill"
+                  style={{
+                    backgroundColor: label.color,
+                    color: '#fff',
+                    border: 'none',
+                  }}
+                >
+                  {label.name}
+                </span>
+
+                <p>{label.description}</p>
               </div>
-              <button className="secondary-button small" onClick={() => handleDeleteLabel(l._id)}>Delete</button>
+
+              <button
+                className="secondary-button small"
+                onClick={() => handleDeleteLabel(label._id)}
+              >
+                Delete
+              </button>
             </div>
           ))}
         </div>
       </div>
-      
+
       {isOwner && (
         <div className="card stack-md">
           <h3>Danger Zone</h3>
-          <div className="list-row compact" style={{ border: '1px solid var(--border)', padding: '1rem', borderRadius: '8px' }}>
+
+          <div
+            className="list-row compact"
+            style={{
+              border: '1px solid var(--border)',
+              padding: '1rem',
+              borderRadius: '8px',
+            }}
+          >
             <div>
-              <strong style={{ color: 'var(--danger, #d73a49)' }}>Archive repository</strong>
+              <strong
+                style={{
+                  color: 'var(--danger, #d73a49)',
+                }}
+              >
+                Archive repository
+              </strong>
+
               <p>Mark this repository as archived and read-only.</p>
             </div>
+
             <button
               className="secondary-button"
-              style={{ color: 'var(--danger, #d73a49)', borderColor: 'var(--danger, #d73a49)' }}
+              style={{
+                color: 'var(--danger, #d73a49)',
+                borderColor: 'var(--danger, #d73a49)',
+              }}
               onClick={async () => {
                 await repoApi.archive(repo._id);
-                pushToast(repo.isArchived ? 'Repository unarchived' : 'Repository archived');
+                pushToast(
+                  repo.isArchived
+                    ? 'Repository unarchived'
+                    : 'Repository archived'
+                );
                 refreshRepo();
               }}
             >
               {repo.isArchived ? 'Unarchive' : 'Archive'}
             </button>
           </div>
+
+          <div
+            className="list-row compact"
+            style={{
+              border: '1px solid var(--danger, #d73a49)',
+              padding: '1rem',
+              borderRadius: '8px',
+            }}
+          >
+            <div>
+              <strong
+                style={{
+                  color: 'var(--danger, #d73a49)',
+                }}
+              >
+                Delete repository
+              </strong>
+
+              <p>
+                Permanently delete this repository and all related issues, PRs,
+                notifications, and activity.
+              </p>
+            </div>
+
+            <button
+              className="secondary-button"
+              style={{
+                color: 'var(--danger, #d73a49)',
+                borderColor: 'var(--danger, #d73a49)',
+              }}
+              onClick={() => setDeleteOpen(true)}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       )}
+
+      <Modal
+        open={deleteOpen}
+        title="Delete repository"
+        onClose={() => {
+          setDeleteOpen(false);
+          setDeleteName('');
+        }}
+      >
+        <div className="stack-md">
+          <p>
+            This action cannot be undone. To confirm, type{' '}
+            <strong>{repo.name}</strong> below.
+          </p>
+
+          <input
+            value={deleteName}
+            onChange={(e) => setDeleteName(e.target.value)}
+            placeholder={repo.name}
+          />
+
+          <div className="button-row">
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteName('');
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="primary-button"
+              disabled={deleteLoading || deleteName.trim() !== repo.name}
+              onClick={confirmDeleteRepo}
+              style={{
+                background: 'var(--danger, #d73a49)',
+              }}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete repository'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

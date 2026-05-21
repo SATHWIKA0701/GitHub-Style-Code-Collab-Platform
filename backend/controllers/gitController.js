@@ -1,3 +1,4 @@
+// Git-related controller functions
 import * as gitService from "../services/gitService.js";
 import { logActivity, notifyRepoMembers } from "../utils/eventHelpers.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -70,9 +71,7 @@ export const getCommits = asyncHandler(async (req, res) => {
   const key = `commits:${repoName}:${page}:${limit}`;
   const cached = cache.get(key);
 
-  if (cached) {
-    return res.json(cached);
-  }
+  if (cached) return res.json(cached);
 
   const { data, total } = await gitService.getCommitHistory(
     repoName,
@@ -89,7 +88,6 @@ export const getCommits = asyncHandler(async (req, res) => {
   };
 
   cache.set(key, result, 30);
-
   res.json(result);
 });
 
@@ -139,13 +137,26 @@ export const switchBranch = asyncHandler(async (req, res) => {
 });
 
 export const mergeBranch = asyncHandler(async (req, res) => {
-  const result = await gitService.mergeBranch(
-    req.body.repoName,
-    req.body.branchName
-  );
+  const { repoName, branchName, sourceBranch } = req.body;
 
-  cache.del(`commits:${req.body.repoName}:1:20`);
-  cache.del(`branches:${req.body.repoName}`);
+  const selectedBranch = branchName || sourceBranch;
+
+  if (!repoName) {
+    return res.status(400).json({
+      message: "repoName is required",
+    });
+  }
+
+  if (!selectedBranch) {
+    return res.status(400).json({
+      message: "branchName is required",
+    });
+  }
+
+  const result = await gitService.mergeBranch(repoName, selectedBranch);
+
+  cache.del(`commits:${repoName}:1:20`);
+  cache.del(`branches:${repoName}`);
 
   if (req.repo) {
     await touchRepoUpdatedAt(req.repo);
@@ -156,7 +167,7 @@ export const mergeBranch = asyncHandler(async (req, res) => {
       eventType: "commit_pushed",
       message: "Branches merged",
       metadata: {
-        mergedBranch: req.body.branchName,
+        mergedBranch: selectedBranch,
         sha: result?.commit || null,
       },
     });
@@ -187,14 +198,11 @@ export const getBranches = asyncHandler(async (req, res) => {
   const key = `branches:${req.params.repoName}`;
   const cached = cache.get(key);
 
-  if (cached) {
-    return res.json(cached);
-  }
+  if (cached) return res.json(cached);
 
   const branches = await gitService.getBranches(req.params.repoName);
 
   cache.set(key, branches, 30);
-
   res.json(branches);
 });
 
@@ -207,9 +215,7 @@ export const getFiles = asyncHandler(async (req, res) => {
   const key = `files:${req.params.repoName}:${req.query.path || ""}`;
   const cached = cache.get(key);
 
-  if (cached) {
-    return res.json(cached);
-  }
+  if (cached) return res.json(cached);
 
   const files = await gitService.listFiles(
     req.params.repoName,
@@ -217,7 +223,6 @@ export const getFiles = asyncHandler(async (req, res) => {
   );
 
   cache.set(key, files, 30);
-
   res.json(files);
 });
 

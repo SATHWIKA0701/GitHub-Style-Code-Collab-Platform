@@ -1,12 +1,12 @@
-//FileExplorerPage.jsx
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
-const Editor = lazy(() => import('@monaco-editor/react'));
 import { gitApi } from '../api/services';
 import { useApp } from '../contexts/AppContext';
 import { Modal } from '../components/Modal';
+
+const Editor = lazy(() => import('@monaco-editor/react'));
 
 export const FileExplorerPage = () => {
   const { repo } = useOutletContext();
@@ -20,13 +20,24 @@ export const FileExplorerPage = () => {
   const [folderName, setFolderName] = useState('');
   const [folderOpen, setFolderOpen] = useState(false);
 
-  const load = async (path = currentPath) => {
-    const data = await gitApi.files(repo.name, path);
-    setListing(data);
+  const [commitOpen, setCommitOpen] = useState(false);
+  const [commitMessage, setCommitMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+const [deleteLoading, setDeleteLoading] = useState(false);
 
-    if (data.type === 'file') {
-      setSelectedFile(data.path);
-      setContent(data.content || '');
+  const load = async (path = currentPath) => {
+    try {
+      const data = await gitApi.files(repo.name, path);
+      setListing(data);
+
+      if (data.type === 'file') {
+        setSelectedFile(data.path);
+        setContent(data.content || '');
+      }
+    } catch (error) {
+      pushToast(error.message || 'Failed to load files');
+      setListing({ items: [] });
     }
   };
 
@@ -44,81 +55,116 @@ export const FileExplorerPage = () => {
     selectedFile?.toLowerCase().endsWith('.markdown');
 
   const openItem = async (item) => {
-    if (item.type === 'dir') {
-      setCurrentPath(item.path);
+    try {
+      if (item.type === 'dir') {
+        setCurrentPath(item.path);
+
+        const data = await gitApi.files(repo.name, item.path);
+        setListing(data);
+        return;
+      }
+
       const data = await gitApi.files(repo.name, item.path);
-      setListing(data);
+      setSelectedFile(item.path);
+      setContent(data.content || '');
+    } catch (error) {
+      pushToast(error.message || 'Failed to open item');
+    }
+  };
+
+  const saveFile = () => {
+    if (!selectedFile) {
+      pushToast('No file selected');
       return;
     }
 
-    const data = await gitApi.files(repo.name, item.path);
-    setSelectedFile(item.path);
-    setContent(data.content || '');
+    setCommitOpen(true);
   };
 
- const saveFile = async () => {
-  if (!selectedFile) return;
+  const confirmSaveFile = async () => {
+    if (!commitMessage.trim()) {
+      pushToast('Commit message required');
+      return;
+    }
 
-  const message = window.prompt('Enter commit message for this file change:');
+    try {
+      setSaving(true);
 
-  if (!message || !message.trim()) {
-    pushToast('Commit message is required');
-    return;
-  }
+      await gitApi.saveFileWithCommit({
+        repoName: repo.name,
+        path: selectedFile,
+        content,
+        message: commitMessage.trim(),
+      });
 
-  try {
-    await gitApi.saveFileWithCommit({
-      repoName: repo.name,
-      path: selectedFile,
-      content,
-      message: message.trim(),
-    });
+      pushToast('File committed successfully');
 
-    pushToast('File saved and committed');
-  } catch (error) {
-    pushToast(error.message);
-  }
-};
+      setCommitOpen(false);
+      setCommitMessage('');
+      load(currentPath);
+    } catch (error) {
+      pushToast(error.message || 'Failed to save file');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-const upload = async (e) => {
-  const files = e.target.files;
+  const upload = async (e) => {
+    const files = e.target.files;
 
-  if (!files?.length) return;
+    if (!files?.length) return;
 
-  try {
-    await gitApi.uploadFiles({
-      repoName: repo.name,
-      directory: currentPath,
-      files,
-    });
+    try {
+      await gitApi.uploadFiles({
+        repoName: repo.name,
+        directory: currentPath,
+        files,
+      });
 
-    pushToast('Files uploaded');
-    load(currentPath);
-  } catch (error) {
-    pushToast(error.message);
-  } finally {
-    e.target.value = '';
-  }
-};
+      pushToast('Files uploaded');
+      load(currentPath);
+    } catch (error) {
+      pushToast(error.message || 'Failed to upload files');
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   const createFolder = async (e) => {
     e.preventDefault();
 
-    await gitApi.createFolder({
-      repoName: repo.name,
-      path: [currentPath, folderName].filter(Boolean).join('/'),
-    });
+    try {
+      await gitApi.createFolder({
+        repoName: repo.name,
+        path: [currentPath, folderName].filter(Boolean).join('/'),
+      });
 
-    pushToast('Folder created');
-    setFolderOpen(false);
-    setFolderName('');
-    load(currentPath);
+      pushToast('Folder created');
+      setFolderOpen(false);
+      setFolderName('');
+      load(currentPath);
+    } catch (error) {
+      pushToast(error.message || 'Failed to create folder');
+    }
   };
 
-  const deleteSelected = async () => {
-    const path = selectedFile || currentPath;
+ const deleteSelected = () => {
+  const path = selectedFile || currentPath;
 
-    if (!path) return;
+  if (!path) {
+    pushToast('Nothing selected');
+    return;
+  }
+
+  setDeleteOpen(true);
+};
+const confirmDelete = async () => {
+  const path = selectedFile || currentPath;
+
+  if (!path) return;
+
+  try {
+    setDeleteLoading(true);
 
     await gitApi.deletePath({
       repoName: repo.name,
@@ -128,9 +174,18 @@ const upload = async (e) => {
     setSelectedFile(null);
     setContent('');
     setCurrentPath('');
-    pushToast('Path deleted');
+
+    pushToast('Path deleted successfully');
+
+    setDeleteOpen(false);
+
     load('');
-  };
+  } catch (error) {
+    pushToast(error.message || 'Failed to delete path');
+  } finally {
+    setDeleteLoading(false);
+  }
+};
 
   return (
     <div className="stack-md">
@@ -215,6 +270,7 @@ const upload = async (e) => {
             <>
               <div className="section-header">
                 <strong>{selectedFile}</strong>
+
                 <button className="primary-button small" onClick={saveFile}>
                   Save file
                 </button>
@@ -225,7 +281,11 @@ const upload = async (e) => {
                   <ReactMarkdown>{content}</ReactMarkdown>
                 </div>
               ) : (
-                <Suspense fallback={<div className="empty-card">Loading editor...</div>}>
+                <Suspense
+                  fallback={
+                    <div className="empty-card">Loading editor...</div>
+                  }
+                >
                   <Editor
                     height="65vh"
                     theme="vs-dark"
@@ -255,9 +315,98 @@ const upload = async (e) => {
             placeholder="Folder name"
             required
           />
+
           <button className="primary-button">Create</button>
         </form>
       </Modal>
+
+      <Modal
+        open={commitOpen}
+        title="Commit changes"
+        onClose={() => {
+          setCommitOpen(false);
+          setCommitMessage('');
+        }}
+      >
+        <div className="stack-md">
+          <p>Enter a commit message for this file change.</p>
+
+          <input
+            value={commitMessage}
+            onChange={(e) => setCommitMessage(e.target.value)}
+            placeholder="Update file content"
+            autoFocus
+          />
+
+          <div className="button-row">
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setCommitOpen(false);
+                setCommitMessage('');
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="primary-button"
+              disabled={saving || !commitMessage.trim()}
+              onClick={confirmSaveFile}
+            >
+              {saving ? 'Saving...' : 'Commit & Save'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+  open={deleteOpen}
+  title="Delete confirmation"
+  onClose={() => setDeleteOpen(false)}
+>
+  <div className="stack-md">
+    <p>
+      Are you sure you want to delete this{' '}
+      <strong>
+        {selectedFile ? 'file' : 'folder'}
+      </strong>
+      ?
+    </p>
+
+    <div
+      style={{
+        padding: '0.75rem',
+        borderRadius: '8px',
+        background: 'var(--surface-secondary)',
+        wordBreak: 'break-word',
+      }}
+    >
+      {selectedFile || currentPath}
+    </div>
+
+    <div className="button-row">
+      <button
+        className="secondary-button"
+        onClick={() => setDeleteOpen(false)}
+      >
+        Cancel
+      </button>
+
+      <button
+        className="primary-button"
+        style={{
+          background: '#dc2626',
+        }}
+        disabled={deleteLoading}
+        onClick={confirmDelete}
+      >
+        {deleteLoading
+          ? 'Deleting...'
+          : 'Delete'}
+      </button>
+    </div>
+  </div>
+</Modal>
     </div>
   );
 };
