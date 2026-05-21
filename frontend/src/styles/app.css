@@ -95,3 +95,166 @@ p, .subtle, small { color: var(--muted); }
   .top-nav { order: 3; width: 100%; overflow: auto; }
   .hero-strip, .repo-banner, .profile-card { flex-direction: column; align-items: start; }
 }
+/* Commit Graph */
+
+.commit-graph-card {
+  padding: 1.25rem;
+}
+
+.commit-graph-wrapper {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.commit-graph-item {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.commit-line-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.commit-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--brand);
+  margin-top: 6px;
+}
+
+.commit-line {
+  width: 2px;
+  flex: 1;
+  min-height: 50px;
+  background: var(--border);
+  margin-top: 4px;
+}
+
+.commit-content {
+  flex: 1;
+  background: rgba(13,17,23,.7);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.commit-message {
+  margin: 0 0 .7rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.commit-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: .82rem;
+  margin-bottom: .7rem;
+  flex-wrap: wrap;
+}
+
+.commit-hash {
+  font-family: monospace;
+  font-size: .8rem;
+  color: var(--muted);
+}
+.auth-helper-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.4rem;
+}
+
+.auth-link-button {
+  background: transparent;
+  color: var(--brand);
+  font-weight: 700;
+  padding: 0;
+}
+
+.auth-link-button:hover {
+  text-decoration: underline;
+}
+.auth-submit {
+  width: 220px;
+  margin: 1.2rem auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-switch-text {
+  text-align: center;
+  margin-top: 0.8rem;
+}
+
+.auth-switch-text a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.field {
+  margin-bottom: 0.4rem;
+}
+.success-banner {
+  padding: .8rem 1rem;
+  border-radius: 12px;
+  background: rgba(35, 134, 54, .12);
+  border: 1px solid rgba(35, 134, 54, .45);
+  color: #3fb950;
+}
+.branch-action-card .primary-button,
+.branch-action-card .secondary-button {
+  width: auto;
+  min-width: 160px;
+  height: 46px;
+  padding: 0.75rem 1.2rem;
+}
+
+.branch-action-card .button-row {
+  justify-content: flex-start;
+}
+
+.branch-action-card input {
+  max-width: 100%;
+}
+
+.branch-action-card form {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Branches */
+
+.branch-action-card {
+  max-width: 720px;
+  gap: 0.85rem;
+}
+
+.branch-action-card .field {
+  margin-bottom: 0;
+}
+
+.branch-action-card input,
+.branch-action-card select {
+  height: 48px;
+}
+
+.branch-action-card .button-row {
+  justify-content: flex-start;
+  margin: 0 0 0.4rem;
+}
+
+.branch-action-button {
+  width: auto;
+  min-width: 160px;
+  height: 44px;
+  padding: 0.7rem 1.2rem;
+}

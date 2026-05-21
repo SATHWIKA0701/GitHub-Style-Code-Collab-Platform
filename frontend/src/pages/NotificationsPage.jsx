@@ -1,12 +1,7 @@
-import {
-  useEffect,
-  useState,
-} from 'react';
-
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { notificationApi } from '../api/services';
-
+import { invitationApi, notificationApi } from '../api/services';
 import { useApp } from '../contexts/AppContext';
 
 export const NotificationsPage = () => {
@@ -16,28 +11,18 @@ export const NotificationsPage = () => {
     notifications,
     setNotifications,
     setUnreadNotifications,
+    pushToast,
   } = useApp();
 
-  const [page, setPage] =
-    useState(1);
-
-  const [totalPages, setTotalPages] =
-    useState(1);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = async () => {
     try {
-      const res =
-        await notificationApi.list(
-          page
-        );
+      const res = await notificationApi.list(page);
 
-      setNotifications(
-        res.data || []
-      );
-
-      setTotalPages(
-        res.totalPages || 1
-      );
+      setNotifications(res.data || []);
+      setTotalPages(res.totalPages || 1);
     } catch {
       setNotifications([]);
     }
@@ -47,72 +32,79 @@ export const NotificationsPage = () => {
     load();
   }, [page]);
 
-  const openNotification =
-    async (item) => {
-      try {
-        if (!item.isRead) {
-          await notificationApi.read(
-            item._id
-          );
-        }
+  const markNotificationRead = async (item) => {
+    if (!item.isRead) {
+      await notificationApi.read(item._id);
 
-        setUnreadNotifications(
-          (prev) =>
-            Math.max(0, prev - 1)
-        );
+      setUnreadNotifications((prev) => Math.max(0, prev - 1));
+    }
+  };
 
-        if (
-          item.resourceType ===
-            'issue' &&
-          item.repoId
-        ) {
-          navigate(
-            `/repos/${item.repoId}/issues`
-          );
+  const acceptInvitation = async (item) => {
+    try {
+      await invitationApi.accept(item.resourceId);
+      await markNotificationRead(item);
 
-          return;
-        }
+      pushToast('Invitation accepted. Repository added to your list.');
+      await load();
 
-        if (
-          item.resourceType ===
-            'pr' &&
-          item.repoId
-        ) {
-          navigate(
-            `/repos/${item.repoId}/pull-requests`
-          );
-
-          return;
-        }
-
-        if (
-          item.resourceType ===
-            'repository' &&
-          item.repoId
-        ) {
-          navigate(
-            `/repos/${item.repoId}`
-          );
-
-          return;
-        }
-      } catch (err) {
-        console.error(err);
+      if (item.repoId) {
+        navigate(`/repos/${item.repoId}`);
       }
-    };
+    } catch (err) {
+      pushToast(err.message || 'Failed to accept invitation');
+    }
+  };
 
-  const markAllRead =
-    async () => {
-      try {
-        await notificationApi.readAll();
+  const declineInvitation = async (item) => {
+    try {
+      await invitationApi.decline(item.resourceId);
+      await markNotificationRead(item);
 
-        setUnreadNotifications(0);
+      pushToast('Invitation declined');
+      await load();
+    } catch (err) {
+      pushToast(err.message || 'Failed to decline invitation');
+    }
+  };
 
-        load();
-      } catch (err) {
-        console.error(err);
+  const openNotification = async (item) => {
+    try {
+      if (item.type === 'repo_invitation') {
+        return;
       }
-    };
+
+      await markNotificationRead(item);
+
+      if (item.resourceType === 'issue' && item.repoId) {
+        navigate(`/repos/${item.repoId}/issues`);
+        return;
+      }
+
+      if (item.resourceType === 'pr' && item.repoId) {
+        navigate(`/repos/${item.repoId}/pulls`);
+        return;
+      }
+
+      if (item.resourceType === 'repository' && item.repoId) {
+        navigate(`/repos/${item.repoId}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await notificationApi.readAll();
+
+      setUnreadNotifications(0);
+
+      await load();
+    } catch (err) {
+      pushToast(err.message || 'Failed to mark all read');
+    }
+  };
 
   return (
     <div className="card list-stack">
@@ -128,25 +120,47 @@ export const NotificationsPage = () => {
       </div>
 
       {notifications.map((item) => (
-        <button
+        <div
           key={item._id}
           className="list-row"
-          onClick={() =>
-            openNotification(item)
-          }
+          onClick={() => openNotification(item)}
           style={{
-            opacity:
-              item.isRead
-                ? 0.7
-                : 1,
+            opacity: item.isRead ? 0.7 : 1,
+            cursor: item.type === 'repo_invitation' ? 'default' : 'pointer',
           }}
         >
           <div>
-            <strong>
-              {item.message}
-            </strong>
-
+            <strong>{item.message}</strong>
             <p>{item.type}</p>
+
+            {item.type === 'repo_invitation' && !item.isRead && (
+              <div
+                className="button-row"
+                style={{
+                  marginTop: '0.5rem',
+                }}
+              >
+                <button
+                  className="primary-button small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    acceptInvitation(item);
+                  }}
+                >
+                  Accept
+                </button>
+
+                <button
+                  className="secondary-button small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    declineInvitation(item);
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
+            )}
           </div>
 
           {!item.isRead && (
@@ -154,7 +168,7 @@ export const NotificationsPage = () => {
               unread
             </span>
           )}
-        </button>
+        </div>
       ))}
 
       {!notifications.length && (
@@ -167,26 +181,19 @@ export const NotificationsPage = () => {
         <button
           className="secondary-button"
           disabled={page <= 1}
-          onClick={() =>
-            setPage((p) => p - 1)
-          }
+          onClick={() => setPage((p) => p - 1)}
         >
           Previous
         </button>
 
         <span>
-          Page {page} of{' '}
-          {totalPages}
+          Page {page} of {totalPages}
         </span>
 
         <button
           className="secondary-button"
-          disabled={
-            page >= totalPages
-          }
-          onClick={() =>
-            setPage((p) => p + 1)
-          }
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
         >
           Next
         </button>

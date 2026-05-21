@@ -1,4 +1,3 @@
-//RepositoriesPage.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { repoApi } from '../api/services';
@@ -18,25 +17,71 @@ export const RepositoriesPage = () => {
       })
       .catch(() => setRepos([]));
   }, [page]);
-  const filtered = useMemo(() => repos.filter((repo) => repo.name.toLowerCase().includes(query.toLowerCase())), [repos, query]);
+
+  const filtered = useMemo(
+    () =>
+      repos.filter((repo) =>
+        repo.name.toLowerCase().includes(query.toLowerCase())
+      ),
+    [repos, query]
+  );
 
   return (
     <div className="stack-lg">
       <div className="page-header">
-        <div><h1>Repositories</h1><p>Browse every repository you can access.</p></div>
-        <Link className="primary-button" to="/repositories/new">New repository</Link>
+        <div>
+          <h1>Repositories</h1>
+          <p>Browse every repository you can access.</p>
+
+          <div style={{ marginTop: '1rem' }}>
+            <Link
+              className="primary-button"
+              to="/repositories/new"
+            >
+              New repository
+            </Link>
+          </div>
+        </div>
       </div>
-      <div className="card toolbar"><input placeholder="Find a repository…" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+
+      <div className="card toolbar">
+        <input
+          placeholder="Find a repository…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
       <div className="repo-grid">
         {filtered.map((repo) => (
-          <Link key={repo._id} to={`/repos/${repo._id}`} className="repo-card card hover-card">
-            <div className="section-header"><strong>{repo.name}</strong><span className="pill">{repo.visibility}</span></div>
+          <Link
+            key={repo._id}
+            to={`/repos/${repo._id}`}
+            className="repo-card card hover-card"
+          >
+            <div className="section-header">
+              <strong>{repo.name}</strong>
+              <span className="pill">{repo.visibility}</span>
+            </div>
+
             <p>{repo.description || 'No description yet.'}</p>
-            <div className="meta-row"><span>{repo.defaultBranch || 'main'}</span><span>{new Date(repo.updatedAt).toLocaleDateString()}</span></div>
+
+            <div className="meta-row">
+              <span>{repo.defaultBranch || 'main'}</span>
+              <span>
+                {new Date(repo.updatedAt).toLocaleDateString()}
+              </span>
+            </div>
           </Link>
         ))}
-        {!filtered.length && <div className="empty-card">No repositories match your search.</div>}
+
+        {!filtered.length && (
+          <div className="empty-card">
+            No repositories match your search.
+          </div>
+        )}
       </div>
+
       <div className="button-row">
         <button
           className="secondary-button"

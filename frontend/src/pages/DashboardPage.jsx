@@ -37,14 +37,7 @@ export const DashboardPage = () => {
             )) : <div className="empty-card">No repositories yet.</div>}
           </div>
         </section>
-        <section className="card">
-          <div className="section-header"><h3>Unread notifications</h3><Link to="/notifications">Open</Link></div>
-          <div className="list-stack">
-            {notifications.length ? notifications.slice(0, 6).map((item) => (
-              <div key={item._id} className="list-row compact"><strong>{item.message}</strong><span>{new Date(item.createdAt).toLocaleString()}</span></div>
-            )) : <div className="empty-card">All caught up 🎉</div>}
-          </div>
-        </section>
+  
       </div>
     </div>
   );

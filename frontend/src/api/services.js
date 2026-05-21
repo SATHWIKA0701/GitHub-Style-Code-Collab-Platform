@@ -1,8 +1,11 @@
+// services.js
 import http from './http';
 
 export const authApi = {
   register: (payload) => http.post('/auth/register', payload).then((r) => r.data),
   login: (payload) => http.post('/auth/login', payload).then((r) => r.data),
+  forgotPassword: (payload) =>
+  http.post('/auth/forgot-password', payload).then((r) => r.data),
   logout: () => http.post('/auth/logout').then((r) => r.data),
   profile: () => http.get('/auth/profile').then((r) => r.data),
   updateProfile: (payload) => http.put('/auth/profile', payload).then((r) => r.data),
@@ -102,4 +105,17 @@ export const notificationApi = {
   count: () => http.get("/api/notifications/count").then((r) => r.data),
   read: (id) => http.patch(`/api/notifications/${id}/read`).then((r) => r.data),
   readAll: () => http.put("/api/notifications/read-all").then((r) => r.data),
+};
+export const invitationApi = {
+  list: () =>
+    http.get('/api/invitations').then((r) => r.data),
+
+  accept: (id) =>
+    http.put(`/api/invitations/${id}/accept`).then((r) => r.data),
+
+  decline: (id) =>
+    http.put(`/api/invitations/${id}/decline`).then((r) => r.data),
+
+  send: (repoId, payload) =>
+    http.post(`/api/repos/${repoId}/invitations`, payload).then((r) => r.data),
 };

@@ -1,106 +1,35 @@
-export const CommitGraph = ({
-  commits,
-}) => {
+export const CommitGraph = ({ commits }) => {
+  if (!commits?.length) return null;
+
   return (
-    <div
-      style={{
-        position: 'relative',
-      }}
-    >
-      {commits.map(
-        (commit, index) => (
+    <div className="card commit-graph-card">
+      <div className="section-header">
+        <h3>Commit graph</h3>
+      </div>
+
+      <div className="commit-graph-wrapper">
+        {commits.map((commit, index) => (
           <div
             key={commit.hash}
-            style={{
-              display: 'flex',
-
-              gap: '16px',
-
-              marginBottom: '24px',
-
-              position:
-                'relative',
-            }}
+            className="commit-graph-item"
           >
-            <div
-              style={{
-                display: 'flex',
+            {/* Timeline */}
+            <div className="commit-line-section">
+              <div className="commit-dot" />
 
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'center',
-              }}
-            >
-              <div
-                style={{
-                  width: '14px',
-
-                  height: '14px',
-
-                  borderRadius:
-                    '50%',
-
-                  background:
-                    '#1f6feb',
-
-                  marginTop: '6px',
-                }}
-              />
-
-              {index !==
-                commits.length -
-                  1 && (
-                <div
-                  style={{
-                    width: '2px',
-
-                    flex: 1,
-
-                    background:
-                      '#30363d',
-
-                    minHeight:
-                      '50px',
-                  }}
-                />
+              {index !== commits.length - 1 && (
+                <div className="commit-line" />
               )}
             </div>
 
-            <div
-              className="card"
-              style={{
-                flex: 1,
-
-                padding: '16px',
-              }}
-            >
-              <h4
-                style={{
-                  marginBottom:
-                    '8px',
-                }}
-              >
+            {/* Commit Card */}
+            <div className="commit-content">
+              <h4 className="commit-message">
                 {commit.message}
               </h4>
 
-              <div
-                style={{
-                  fontSize:
-                    '13px',
-
-                  opacity: 0.7,
-
-                  display: 'flex',
-
-                  justifyContent:
-                    'space-between',
-                }}
-              >
-                <span>
-                  {commit.author}
-                </span>
+              <div className="commit-meta">
+                <span>{commit.author}</span>
 
                 <span>
                   {new Date(
@@ -109,24 +38,13 @@ export const CommitGraph = ({
                 </span>
               </div>
 
-              <div
-                style={{
-                  marginTop: '10px',
-
-                  fontSize: '12px',
-
-                  fontFamily:
-                    'monospace',
-
-                  opacity: 0.7,
-                }}
-              >
-                {commit.hash}
+              <div className="commit-hash">
+                {(commit.hash || "").slice(0, 7)}
               </div>
             </div>
           </div>
-        )
-      )}
+        ))}
+      </div>
     </div>
   );
 };

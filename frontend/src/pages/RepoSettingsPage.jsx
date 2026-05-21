@@ -1,7 +1,8 @@
+// RepoSettingsPage.jsx
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-import { authApi, repoApi } from '../api/services';
+import { authApi, repoApi,invitationApi } from '../api/services';
 import { FormField } from '../components/FormField';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -74,10 +75,10 @@ export const RepoSettingsPage = () => {
     }
 
     try {
-      await repoApi.addCollaborator(repo._id, {
-        userId,
-        role,
-      });
+      await invitationApi.send(repo._id, {
+  receiverId: userId,
+  role,
+});
 
       pushToast('Collaborator added');
       await refreshRepo();
@@ -211,7 +212,7 @@ export const RepoSettingsPage = () => {
                     onClick={() => addCollaborator(targetUserId)}
                     disabled={!targetUserId}
                   >
-                    Add
+                    Send Invite
                   </button>
                 </div>
               );
