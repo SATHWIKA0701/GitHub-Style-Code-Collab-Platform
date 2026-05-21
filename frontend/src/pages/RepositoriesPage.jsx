@@ -82,27 +82,6 @@ export const RepositoriesPage = () => {
         )}
       </div>
 
-      <div className="button-row">
-        <button
-          className="secondary-button"
-          disabled={page <= 1}
-          onClick={() => setPage((p) => p - 1)}
-        >
-          Previous
-        </button>
-
-        <span>
-          Page {page} of {totalPages}
-        </span>
-
-        <button
-          className="secondary-button"
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </button>
-      </div>
     </div>
   );
 };
