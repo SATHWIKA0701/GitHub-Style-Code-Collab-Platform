@@ -14,7 +14,7 @@ const invitationSchema = new mongoose.Schema(
       required: true,
     },
 
-    invitedUserId: {
+    receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -54,4 +54,5 @@ invitationSchema.index(
   }
 );
 
-export default mongoose.model("Invitation", invitationSchema);
+export default mongoose.models.Invitation ||
+  mongoose.model("Invitation", invitationSchema);

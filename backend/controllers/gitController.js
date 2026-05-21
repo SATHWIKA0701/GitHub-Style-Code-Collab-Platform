@@ -2,7 +2,16 @@ import * as gitService from "../services/gitService.js";
 import { logActivity, notifyRepoMembers } from "../utils/eventHelpers.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getPagination } from "../utils/pagination.js";
+import Repository from "../models/Repository.js";
 import cache from "../utils/cache.js";
+
+const touchRepoUpdatedAt = async (repo) => {
+  if (!repo?._id) return;
+
+  await Repository.findByIdAndUpdate(repo._id, {
+    updatedAt: new Date(),
+  });
+};
 
 export const createRepo = asyncHandler(async (req, res) => {
   const { repoName, defaultBranch } = req.body;
@@ -17,19 +26,20 @@ export const createRepo = asyncHandler(async (req, res) => {
 
 export const commit = asyncHandler(async (req, res) => {
   const { repoName, message } = req.body;
+
   const result = await gitService.commitFiles(repoName, message, req.user);
-  
+
   cache.del(`commits:${repoName}:1:20`);
   cache.del(`branches:${repoName}`);
 
-  const repo = req.repo;
+  if (req.repo) {
+    await touchRepoUpdatedAt(req.repo);
 
-  if (repo) {
     await logActivity({
-      repoId: repo._id,
+      repoId: req.repo._id,
       userId: req.user.id,
       eventType: "commit_pushed",
-      message: `Commit pushed to ${repo.name}`,
+      message: `Commit pushed to ${req.repo.name}`,
       metadata: {
         commit: result?.commit || null,
         sha: result?.commit || null,
@@ -37,16 +47,16 @@ export const commit = asyncHandler(async (req, res) => {
     });
 
     await notifyRepoMembers({
-      repo,
+      repo: req.repo,
       excludeUserId: req.user.id,
       type: "commit_pushed",
-      message: `New commit pushed in ${repo.name}`,
+      message: `New commit pushed in ${req.repo.name}`,
       payload: {
         type: "commit_pushed",
-        message: `New commit in ${repo.name}`,
+        message: `New commit in ${req.repo.name}`,
         sha: result?.commit || null,
       },
-      repoId: repo._id,
+      repoId: req.repo._id,
     });
   }
 
@@ -105,6 +115,8 @@ export const createBranch = asyncHandler(async (req, res) => {
   cache.del(`branches:${repoName}`);
 
   if (req.repo) {
+    await touchRepoUpdatedAt(req.repo);
+
     await logActivity({
       repoId: req.repo._id,
       userId: req.user.id,
@@ -136,6 +148,8 @@ export const mergeBranch = asyncHandler(async (req, res) => {
   cache.del(`branches:${req.body.repoName}`);
 
   if (req.repo) {
+    await touchRepoUpdatedAt(req.repo);
+
     await logActivity({
       repoId: req.repo._id,
       userId: req.user.id,
@@ -224,6 +238,8 @@ export const saveFileWithCommit = asyncHandler(async (req, res) => {
   cache.del(`commits:${repoName}:1:20`);
 
   if (req.repo) {
+    await touchRepoUpdatedAt(req.repo);
+
     await logActivity({
       repoId: req.repo._id,
       userId: req.user.id,
@@ -266,6 +282,8 @@ export const saveFile = asyncHandler(async (req, res) => {
   cache.del(`files:${req.body.repoName}:`);
   cache.del(`commits:${req.body.repoName}:1:20`);
 
+  await touchRepoUpdatedAt(req.repo);
+
   res.json(result);
 });
 
@@ -278,6 +296,8 @@ export const uploadFiles = asyncHandler(async (req, res) => {
 
   cache.del(`files:${req.body.repoName}:${req.body.directory || ""}`);
 
+  await touchRepoUpdatedAt(req.repo);
+
   res.json({ uploaded });
 });
 
@@ -289,6 +309,8 @@ export const createFolder = asyncHandler(async (req, res) => {
 
   cache.del(`files:${req.body.repoName}:`);
 
+  await touchRepoUpdatedAt(req.repo);
+
   res.json(result);
 });
 
@@ -299,6 +321,8 @@ export const deleteFilePath = asyncHandler(async (req, res) => {
   );
 
   cache.del(`files:${req.body.repoName}:`);
+
+  await touchRepoUpdatedAt(req.repo);
 
   res.json(result);
 });

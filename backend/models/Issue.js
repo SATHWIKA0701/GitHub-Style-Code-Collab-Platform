@@ -1,82 +1,41 @@
 import mongoose from "mongoose";
 
-const issueSchema = new mongoose.Schema(
+const invitationSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: [3, "Issue title must be at least 3 characters long"],
-      maxlength: [120, "Issue title must be at most 120 characters long"],
-    },
-
-    description: {
-      type: String,
-      trim: true,
-      maxlength: [2000, "Issue description is too long"],
-    },
-
     repoId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Repository",
       required: true,
     },
-    issueNumber: {
-      type: Number,
+
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
-    createdBy: {
+
+    receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
 
-    assignee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    role: {
+      type: String,
+      enum: ["collaborator", "viewer"],
+      default: "collaborator",
     },
 
     status: {
       type: String,
-      enum: ["open", "closed"],
-      default: "open",
-    },
-    number: {
-      type: Number
-    },
-    labels: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Label",
-      },
-    ],
-    assignees: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    closedAt: Date,
-    closedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
+      enum: ["pending", "accepted", "declined"],
+      default: "pending",
     },
   },
   { timestamps: true }
 );
-issueSchema.index({
-  repoId: 1,
-  createdAt: -1,
-});
 
-issueSchema.index(
-  { repoId: 1, issueNumber: 1 },
-  { unique: true }
+export default mongoose.model(
+  "Invitation",
+  invitationSchema
 );
-
-issueSchema.index({
-  repoId: 1,
-  status: 1,
-});
-
-export default mongoose.model("Issue", issueSchema);

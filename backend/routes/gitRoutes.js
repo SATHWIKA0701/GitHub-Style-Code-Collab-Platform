@@ -35,7 +35,7 @@ const upload = multer({
 
   limits: {
     fileSize: 10 * 1024 * 1024,
-    files: 5,
+  
   },
 
   fileFilter: (req, file, cb) => {
@@ -126,11 +126,7 @@ router.use((error, req, res, next) => {
       });
     }
 
-    if (error.code === "LIMIT_FILE_COUNT") {
-      return res.status(400).json({
-        error: "Too many files. Maximum 5 files can be uploaded at once.",
-      });
-    }
+   
 
     return res.status(400).json({
       error: error.message,

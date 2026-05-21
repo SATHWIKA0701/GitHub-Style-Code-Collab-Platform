@@ -1,267 +1,185 @@
-import mongoose from "mongoose";
 import Invitation from "../models/Invitation.js";
 import Repository from "../models/Repository.js";
-import User from "../models/User.js";
+import Notification from "../models/NotificationModel.js";
 
-import {
-  createNotification,
-  emitUserNotification,
-  logActivity,
-} from "../utils/eventHelpers.js";
+export const sendInvitation = async (req, res) => {
+  try {
+    const { receiverId, role = "collaborator" } = req.body;
+    const repo = req.repo;
 
-import { asyncHandler } from "../utils/asyncHandler.js";
+    if (!receiverId) {
+      return res.status(400).json({
+        message: "User required",
+      });
+    }
 
-const populateInvitation = (query) =>
-  query
-    .populate("repoId", "_id name")
-    .populate("invitedBy", "_id username email")
-    .populate("invitedUserId", "_id username email");
+    if (!["collaborator", "viewer"].includes(role)) {
+      return res.status(400).json({
+        message: "Invalid role",
+      });
+    }
 
-export const createInvitation = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+    if (String(repo.owner) === String(receiverId)) {
+      return res.status(400).json({
+        message: "Repository owner cannot be invited",
+      });
+    }
 
-  const { email, role = "viewer" } = req.body || {};
+    const alreadyCollaborator = repo.collaborators?.some(
+      (c) => String(c.userId) === String(receiverId)
+    );
 
-  if (!email) {
-    return res.status(400).json({
-      message: "email is required",
-    });
-  }
+    if (alreadyCollaborator) {
+      return res.status(400).json({
+        message: "User is already a collaborator",
+      });
+    }
 
-  if (!["viewer", "collaborator"].includes(role)) {
-    return res.status(400).json({
-      message: "Invalid role",
-    });
-  }
-
-  const repo = await Repository.findById(id);
-
-  if (!repo) {
-    return res.status(404).json({
-      message: "Repository not found",
-    });
-  }
-
-  const invitedUser = await User.findOne({
-    email: email.toLowerCase(),
-  });
-
-  if (!invitedUser) {
-    return res.status(404).json({
-      message: "User not found",
-    });
-  }
-
-  if (String(repo.owner) === String(invitedUser._id)) {
-    return res.status(400).json({
-      message: "Owner cannot be invited",
-    });
-  }
-
-  const existingCollaborator = repo.collaborators.find(
-    (c) => String(c.userId) === String(invitedUser._id)
-  );
-
-  if (existingCollaborator) {
-    return res.status(400).json({
-      message: "User is already a collaborator",
-    });
-  }
-
-  const existingInvite = await Invitation.findOne({
-    repoId: repo._id,
-    invitedUserId: invitedUser._id,
-    status: "pending",
-  });
-
-  if (existingInvite) {
-    return res.status(409).json({
-      message: "Pending invitation already exists",
-    });
-  }
-
-  const expiresAt = new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
-  );
-
-  const invitation = await Invitation.create({
-    repoId: repo._id,
-    invitedBy: req.user.id,
-    invitedUserId: invitedUser._id,
-    role,
-    status: "pending",
-    expiresAt,
-  });
-
-  const populated = await populateInvitation(
-    Invitation.findById(invitation._id)
-  );
-
-  const notification = await createNotification({
-  userId: invitedUser._id,
-  repoId: repo._id,
-  type: "repo_invitation",
-  message: `${req.user.username} invited you to collaborate on ${repo.name}`,
-  resourceType: "invitation",
-  resourceId: invitation._id,
-});
-
-  emitUserNotification(invitedUser._id, {
-    type: "repo_invitation",
-    notification,
-    invitation: populated,
-  });
-
-  await logActivity({
-    repoId: repo._id,
-    userId: req.user.id,
-    eventType: "repo_invitation_sent",
-    message: `Invitation sent to ${invitedUser.email}`,
-    metadata: {
-      invitationId: invitation._id,
-    },
-  });
-
-  return res.status(201).json(populated);
-});
-
-export const getMyInvitations = asyncHandler(async (req, res) => {
-  const invitations = await populateInvitation(
-    Invitation.find({
-      invitedUserId: req.user.id,
+    const existing = await Invitation.findOne({
+      repoId: repo._id,
+      receiverId,
       status: "pending",
-    }).sort({ createdAt: -1 })
-  );
-
-  return res.status(200).json(invitations);
-});
-
-export const acceptInvitation = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const invitation = await Invitation.findById(id);
-
-  if (!invitation) {
-    return res.status(404).json({
-      message: "Invitation not found",
-    });
-  }
-
-  if (
-    String(invitation.invitedUserId) !==
-    String(req.user.id)
-  ) {
-    return res.status(403).json({
-      message: "Not authorized",
-    });
-  }
-
-  if (invitation.status !== "pending") {
-    return res.status(400).json({
-      message: "Invitation already processed",
-    });
-  }
-
-  if (new Date() > invitation.expiresAt) {
-    return res.status(400).json({
-      message: "Invitation expired",
-    });
-  }
-
-  const repo = await Repository.findById(invitation.repoId);
-
-  if (!repo) {
-    return res.status(404).json({
-      message: "Repository not found",
-    });
-  }
-
-  const alreadyExists = repo.collaborators.find(
-    (c) =>
-      String(c.userId) === String(req.user.id)
-  );
-
-  if (!alreadyExists) {
-    repo.collaborators.push({
-      userId: req.user.id,
-      role: invitation.role,
     });
 
-    await repo.save();
-  }
+    if (existing) {
+      return res.status(400).json({
+        message: "Invitation already sent",
+      });
+    }
 
-  invitation.status = "accepted";
+    const invitation = await Invitation.create({
+      repoId: repo._id,
+      senderId: req.user.id,
+      receiverId,
+      role,
+      status: "pending",
+    });
 
-  await invitation.save();
+    await Notification.create({
+      userId: receiverId,
+      repoId: repo._id,
+      type: "repo_invitation",
+      resourceType: "invitation",
+      resourceId: invitation._id,
+      message: `${req.user.username || "Someone"} invited you to collaborate on ${repo.name}`,
+    });
 
-  await createNotification({
-    userId: invitation.invitedBy,
-    repoId: repo._id,
-    type: "repo_invitation_accepted",
-    message: `${req.user.username} accepted your invitation`,
-  });
-
-  await logActivity({
-    repoId: repo._id,
-    userId: req.user.id,
-    eventType: "repo_invitation_accepted",
-    message: `Invitation accepted`,
-    metadata: {
-      invitationId: invitation._id,
-    },
-  });
-
-  const populated = await populateInvitation(
-    Invitation.findById(invitation._id)
-  );
-
-  return res.status(200).json(populated);
-});
-
-export const declineInvitation = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const invitation = await Invitation.findById(id);
-
-  if (!invitation) {
-    return res.status(404).json({
-      message: "Invitation not found",
+    return res.status(200).json({
+      message: "Invitation sent successfully",
+      invitation,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
     });
   }
+};
 
-  if (
-    String(invitation.invitedUserId) !==
-    String(req.user.id)
-  ) {
-    return res.status(403).json({
-      message: "Not authorized",
+export const getInvitations = async (req, res) => {
+  try {
+    const invitations = await Invitation.find({
+      receiverId: req.user.id,
+      status: "pending",
+    })
+      .populate("repoId", "name")
+      .populate("senderId", "username");
+
+    return res.json(invitations);
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
     });
   }
+};
 
-  if (invitation.status !== "pending") {
-    return res.status(400).json({
-      message: "Invitation already processed",
+export const acceptInvitation = async (req, res) => {
+  try {
+    const invitation = await Invitation.findById(req.params.id);
+
+    if (!invitation) {
+      return res.status(404).json({
+        message: "Invitation not found",
+      });
+    }
+
+    if (String(invitation.receiverId) !== String(req.user.id)) {
+      return res.status(403).json({
+        message: "You are not allowed to accept this invitation",
+      });
+    }
+
+    if (invitation.status !== "pending") {
+      return res.status(400).json({
+        message: `Invitation already ${invitation.status}`,
+      });
+    }
+
+    const repo = await Repository.findById(invitation.repoId);
+
+    if (!repo) {
+      return res.status(404).json({
+        message: "Repository not found",
+      });
+    }
+
+    const alreadyExists = repo.collaborators.some(
+      (c) => String(c.userId) === String(invitation.receiverId)
+    );
+
+    if (!alreadyExists) {
+      repo.collaborators.push({
+        userId: invitation.receiverId,
+        role: invitation.role,
+      });
+
+      await repo.save();
+    }
+
+    invitation.status = "accepted";
+    await invitation.save();
+
+    return res.json({
+      message: "Invitation accepted",
+      repoId: repo._id,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
     });
   }
+};
 
-  invitation.status = "declined";
+export const declineInvitation = async (req, res) => {
+  try {
+    const invitation = await Invitation.findById(req.params.id);
 
-  await invitation.save();
+    if (!invitation) {
+      return res.status(404).json({
+        message: "Invitation not found",
+      });
+    }
 
-  const repo = await Repository.findById(
-    invitation.repoId
-  );
+    if (String(invitation.receiverId) !== String(req.user.id)) {
+      return res.status(403).json({
+        message: "You are not allowed to decline this invitation",
+      });
+    }
 
-  await createNotification({
-    userId: invitation.invitedBy,
-    repoId: repo?._id,
-    type: "repo_invitation_declined",
-    message: `${req.user.username} declined your invitation`,
-  });
+    if (invitation.status !== "pending") {
+      return res.status(400).json({
+        message: `Invitation already ${invitation.status}`,
+      });
+    }
 
-  const populated = await populateInvitation(
-    Invitation.findById(invitation._id)
-  );
+    invitation.status = "declined";
+    await invitation.save();
 
-  return res.status(200).json(populated);
-});
+    return res.json({
+      message: "Invitation declined",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: err.message,
+    });
+  }
+};

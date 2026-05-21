@@ -1,28 +1,33 @@
 import express from "express";
 
 import authMiddleware from "../middleware/authMiddleware.js";
-import permissionMiddleware from "../middleware/permissionMiddleware.js";
-
-import Repository from "../models/Repository.js";
 
 import {
-  createInvitation,
-  getMyInvitations,
+  sendInvitation,
+  getInvitations,
   acceptInvitation,
   declineInvitation,
 } from "../controllers/invitationController.js";
 
+import Repository from "../models/Repository.js";
+
 const router = express.Router();
 
-const loadRepoById = async (req, res, next) => {
+const loadRepo = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { id } = req.params;
-
-    const repo = await Repository.findById(id);
+    const repo =
+      await Repository.findById(
+        req.params.id
+      );
 
     if (!repo) {
       return res.status(404).json({
-        message: "Repository not found",
+        message:
+          "Repository not found",
       });
     }
 
@@ -37,15 +42,14 @@ const loadRepoById = async (req, res, next) => {
 router.post(
   "/repos/:id/invitations",
   authMiddleware,
-  loadRepoById,
-  permissionMiddleware("owner"),
-  createInvitation
+  loadRepo,
+  sendInvitation
 );
 
 router.get(
   "/invitations",
   authMiddleware,
-  getMyInvitations
+  getInvitations
 );
 
 router.put(
