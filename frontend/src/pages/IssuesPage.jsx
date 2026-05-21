@@ -262,11 +262,15 @@ export const IssuesPage = () => {
       <Modal open={issueOpen} title="Create issue" onClose={() => setIssueOpen(false)}>
         <form className="stack-md" onSubmit={async (e) => { 
           e.preventDefault(); 
-          await repoApi.createIssue(repo._id, form); 
-          setIssueOpen(false); 
-          setForm({ title: '', description: '', labels: [] }); 
-          pushToast('Issue created'); 
-          loadIssues(); 
+          try {
+            await repoApi.createIssue(repo._id, form); 
+            setIssueOpen(false); 
+            setForm({ title: '', description: '', labels: [] }); 
+            pushToast('Issue created'); 
+            loadIssues(); 
+          } catch (error) {
+            pushToast(error.response?.data?.message || error.message || 'Failed to create issue');
+          }
         }}>
           <FormField label="Title"><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></FormField>
           <FormField label="Description"><textarea rows="5" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></FormField>
