@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import * as prController from "../controllers/prController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import permissionMiddleware from "../middleware/permissionMiddleware.js";
@@ -10,13 +11,18 @@ const router = express.Router();
 
 const loadRepoFromBody = async (req, res, next) => {
   try {
-    const { repoName } = req.body;
+    const { repoName, repoId } = req.body;
 
-    if (!repoName) {
-      return res.status(400).json({ message: "repoName is required" });
+    let repo;
+    if (repoId && mongoose.Types.ObjectId.isValid(repoId)) {
+      repo = await Repository.findById(repoId);
+    } else if (repoName) {
+      if (mongoose.Types.ObjectId.isValid(repoName)) {
+        repo = await Repository.findById(repoName);
+      } else {
+        repo = await Repository.findOne({ name: repoName });
+      }
     }
-
-    const repo = await Repository.findOne({ name: repoName });
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found" });
@@ -39,7 +45,13 @@ const loadRepoFromPrId = async (req, res, next) => {
       return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    const repo = await Repository.findOne({ name: pr.repoName });
+    let repo;
+    if (pr.repoId) {
+      repo = await Repository.findById(pr.repoId);
+    }
+    if (!repo && pr.repoName) {
+      repo = await Repository.findOne({ name: pr.repoName });
+    }
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found for this PR" });
@@ -60,7 +72,13 @@ const loadRepoFromRepoNameParam = async (req, res, next) => {
       return res.status(400).json({ message: "repoName is required" });
     }
 
-    const repo = await Repository.findOne({ name: repoName });
+    let repo;
+    if (mongoose.Types.ObjectId.isValid(repoName)) {
+      repo = await Repository.findById(repoName);
+    }
+    if (!repo) {
+      repo = await Repository.findOne({ name: repoName });
+    }
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found" });

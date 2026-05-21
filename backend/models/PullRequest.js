@@ -80,6 +80,12 @@ const inlineCommentSchema =
 const pullRequestSchema =
   new mongoose.Schema(
     {
+      repoId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Repository",
+        required: true
+      },
+
       repoName: {
         type: String,
         required: true

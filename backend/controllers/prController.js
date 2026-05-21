@@ -13,10 +13,12 @@ const hydratePR = (id) =>
     .populate("inlineComments.userId", "_id username email");
 
 export const createPullRequest = asyncHandler(async (req, res) => {
-  const { repoName, title, sourceBranch, targetBranch } = req.body || {};
+  const repo = req.repo;
+  const activeRepoName = repo ? repo.name : req.body.repoName;
+  const { title, sourceBranch, targetBranch } = req.body || {};
 
-  if (!repoName || typeof repoName !== "string") {
-    return res.status(400).json({ message: "repoName is required" });
+  if (!activeRepoName || typeof activeRepoName !== "string") {
+    return res.status(400).json({ message: "repoName or repoId is required" });
   }
 
   if (!title || typeof title !== "string") {
@@ -33,10 +35,10 @@ export const createPullRequest = asyncHandler(async (req, res) => {
 
   const pr = await prService.createPR({
     ...req.body,
+    repoName: activeRepoName,
+    repoId: repo ? repo._id : undefined,
     createdBy: req.user.id
   });
-
-  const repo = req.repo;
 
   if (repo) {
     await logActivity({
@@ -74,8 +76,7 @@ export const createPullRequest = asyncHandler(async (req, res) => {
 });
 
 export const getPullRequests = asyncHandler(async (req, res) => {
-  const { repoName } = req.params;
-  const prs = await prService.getPRs(repoName);
+  const prs = await prService.getPRs(req.repo._id);
   res.json(prs);
 });
 
@@ -95,26 +96,26 @@ export const mergePullRequest = asyncHandler(async (req, res) => {
   const pr = await PullRequest.findById(prId).populate("reviewDecisions.userId", "_id username email");
 
   if (!pr) {
-    return res.status(404).json({ error: "Pull Request not found" });
+    return res.status(404).json({ error: "Pull Request not found", message: "Pull Request not found" });
   }
 
   if (pr.status === "merged") {
-    return res.status(400).json({ error: "PR already merged" });
+    return res.status(400).json({ error: "PR already merged", message: "PR already merged" });
   }
 
   if (pr.status === "closed") {
-    return res.status(400).json({ error: "Closed PR cannot be merged" });
+    return res.status(400).json({ error: "Closed PR cannot be merged", message: "Closed PR cannot be merged" });
   }
 
   const approvals = pr.reviewDecisions.filter((review) => review.decision === "approved");
   const changeRequests = pr.reviewDecisions.filter((review) => review.decision === "changes_requested");
 
   if (changeRequests.length > 0) {
-    return res.status(400).json({ error: "PR has requested changes" });
+    return res.status(400).json({ error: "PR has requested changes", message: "PR has requested changes" });
   }
 
   if (approvals.length === 0) {
-    return res.status(400).json({ error: "PR requires at least one approval" });
+    return res.status(400).json({ error: "PR requires at least one approval", message: "PR requires at least one approval" });
   }
 
   await gitService.mergeBranch(pr.repoName, pr.sourceBranch, pr.targetBranch);

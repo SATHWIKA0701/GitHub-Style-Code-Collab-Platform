@@ -18,8 +18,13 @@ const loadRepoFromPrIdParam = async (req, res, next) => {
       return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    // Use normalized repoId reference instead of repoName
-    const repo = await Repository.findById(pr.repoId);
+    let repo;
+    if (pr.repoId) {
+      repo = await Repository.findById(pr.repoId);
+    }
+    if (!repo && pr.repoName) {
+      repo = await Repository.findOne({ name: pr.repoName });
+    }
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found for this PR" });
@@ -47,8 +52,13 @@ const loadRepoFromPrIdBody = async (req, res, next) => {
       return res.status(404).json({ message: "Pull Request not found" });
     }
 
-    // Use normalized repoId reference instead of repoName
-    const repo = await Repository.findById(pr.repoId);
+    let repo;
+    if (pr.repoId) {
+      repo = await Repository.findById(pr.repoId);
+    }
+    if (!repo && pr.repoName) {
+      repo = await Repository.findOne({ name: pr.repoName });
+    }
 
     if (!repo) {
       return res.status(404).json({ message: "Repository not found for this PR" });

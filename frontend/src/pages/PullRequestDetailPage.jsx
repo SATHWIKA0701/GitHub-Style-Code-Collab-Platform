@@ -41,7 +41,7 @@ export const PullRequestDetailPage = () => {
       const detail = await prApi.detail(prId);
       setPr(detail);
       const reviewComments = await prApi.comments(prId);
-      setComments(reviewComments);
+      setComments(reviewComments.data || []);
       const diffData = await prApi.diff(
         detail.repoName,
         detail.sourceBranch,
@@ -67,7 +67,7 @@ export const PullRequestDetailPage = () => {
     } catch (error) {
       pushToast(
         error.response?.data?.message ||
-          'Failed to merge PR'
+        'Failed to merge PR'
       );
     }
   };
@@ -82,7 +82,7 @@ export const PullRequestDetailPage = () => {
     } catch (error) {
       pushToast(
         error.response?.data?.message ||
-          'Failed to close PR'
+        'Failed to close PR'
       );
     }
   };
@@ -97,7 +97,7 @@ export const PullRequestDetailPage = () => {
     } catch (error) {
       pushToast(
         error.response?.data?.message ||
-          'Failed to reopen PR'
+        'Failed to reopen PR'
       );
     }
   };
@@ -124,7 +124,7 @@ export const PullRequestDetailPage = () => {
         pushToast(
           error.response?.data
             ?.message ||
-            'Failed to submit review'
+          'Failed to submit review'
         );
       }
     };
@@ -294,7 +294,7 @@ export const PullRequestDetailPage = () => {
                     lineNumber:
                       Number(
                         form.lineNumber ||
-                          1
+                        1
                       ),
                   }
                 );
@@ -318,7 +318,7 @@ export const PullRequestDetailPage = () => {
                 pushToast(
                   error.response?.data
                     ?.message ||
-                    'Failed to add comment'
+                  'Failed to add comment'
                 );
               }
             }}
