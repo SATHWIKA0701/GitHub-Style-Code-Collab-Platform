@@ -2,6 +2,8 @@ import Invitation from "../models/Invitation.js";
 import Repository from "../models/Repository.js";
 import Notification from "../models/NotificationModel.js";
 
+const INVITATION_EXPIRY_DAYS = 7;
+
 export const sendInvitation = async (req, res) => {
   try {
     const { receiverId, role = "collaborator" } = req.body;
@@ -16,6 +18,12 @@ export const sendInvitation = async (req, res) => {
     if (!["collaborator", "viewer"].includes(role)) {
       return res.status(400).json({
         message: "Invalid role",
+      });
+    }
+
+    if (!repo) {
+      return res.status(404).json({
+        message: "Repository not found",
       });
     }
 
@@ -47,12 +55,23 @@ export const sendInvitation = async (req, res) => {
       });
     }
 
+    const expiresAt = new Date(
+      Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+    );
+
     const invitation = await Invitation.create({
       repoId: repo._id,
+
+      // your schema requires this
+      invitedBy: req.user.id,
+
+      // keeping this too because your controller/populate uses senderId
       senderId: req.user.id,
+
       receiverId,
       role,
       status: "pending",
+      expiresAt,
     });
 
     await Notification.create({
@@ -80,9 +99,11 @@ export const getInvitations = async (req, res) => {
     const invitations = await Invitation.find({
       receiverId: req.user.id,
       status: "pending",
+      expiresAt: { $gt: new Date() },
     })
       .populate("repoId", "name")
-      .populate("senderId", "username");
+      .populate("senderId", "username")
+      .populate("invitedBy", "username");
 
     return res.json(invitations);
   } catch (err) {
@@ -114,6 +135,15 @@ export const acceptInvitation = async (req, res) => {
       });
     }
 
+    if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+      invitation.status = "declined";
+      await invitation.save();
+
+      return res.status(400).json({
+        message: "Invitation expired",
+      });
+    }
+
     const repo = await Repository.findById(invitation.repoId);
 
     if (!repo) {
@@ -137,6 +167,17 @@ export const acceptInvitation = async (req, res) => {
 
     invitation.status = "accepted";
     await invitation.save();
+
+    await Notification.findOneAndUpdate(
+      {
+        resourceType: "invitation",
+        resourceId: invitation._id,
+        userId: invitation.receiverId,
+      },
+      {
+        isRead: true,
+      }
+    );
 
     return res.json({
       message: "Invitation accepted",
@@ -173,6 +214,17 @@ export const declineInvitation = async (req, res) => {
 
     invitation.status = "declined";
     await invitation.save();
+
+    await Notification.findOneAndUpdate(
+      {
+        resourceType: "invitation",
+        resourceId: invitation._id,
+        userId: invitation.receiverId,
+      },
+      {
+        isRead: true,
+      }
+    );
 
     return res.json({
       message: "Invitation declined",
