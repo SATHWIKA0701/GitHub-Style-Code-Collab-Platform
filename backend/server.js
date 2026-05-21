@@ -155,7 +155,11 @@ function killProcessOnPort(port) {
     const pids = out.split(/\s+/).filter(Boolean);
     if (pids.length) {
       console.log(`Killing process(es) on port ${port}: ${pids.join(", ")}`);
-      execSync(`kill -9 ${pids.join(" ")}`);
+      try {
+        execSync(`kill -9 ${pids.join(" ")}`);
+      } catch (killErr) {
+        // Ignore kill errors if process already exited
+      }
     }
     return pids;
   } catch (err) {
@@ -171,7 +175,7 @@ async function startServerWithPortKill(port, retries = 1) {
       resolve();
     });
 
-    server.on("error", (error) => {
+    server.once("error", (error) => {
       if (error.code === "EADDRINUSE") {
         console.warn(`Port ${port} is already in use. Attempting to free it.`);
         if (retries > 0) {

@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "repos/**",
+    "e2e_test.js",
+    "*.test.js",
+    "node_modules/**"
+  ]
+}

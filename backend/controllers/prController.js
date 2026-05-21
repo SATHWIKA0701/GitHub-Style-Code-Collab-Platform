@@ -118,7 +118,26 @@ export const mergePullRequest = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "PR requires at least one approval", message: "PR requires at least one approval" });
   }
 
-  await gitService.mergeBranch(pr.repoName, pr.sourceBranch, pr.targetBranch);
+  try {
+    await gitService.mergeBranch(pr.repoName, pr.sourceBranch, pr.targetBranch);
+  } catch (error) {
+    const isConflict = error.message && (
+      error.message.includes("CONFLICTS") ||
+      error.message.includes("conflict") ||
+      error.message.includes("needs merge")
+    );
+
+    if (isConflict) {
+      pr.hasConflicts = true;
+      await pr.save();
+      return res.status(400).json({
+        error: "Merge conflict detected",
+        message: "This branch has merge conflicts that must be resolved before merging."
+      });
+    }
+
+    throw error;
+  }
 
   pr.status = "merged";
   pr.mergedAt = new Date();

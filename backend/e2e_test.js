@@ -94,6 +94,28 @@ async function runTests() {
   if (res.status !== 200) { console.error('Create branch failed', res.data); process.exit(1); }
   console.log('Branch created successfully!');
 
+  // 6.5 Switch to Feature Branch and Commit Changes
+  console.log('\\n6.5 Switching to Feature Branch...');
+  res = await fetchAPI('/api/git/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ repoName, branchName: 'feature-test' })
+  });
+  if (res.status !== 200) { console.error('Switch branch failed', res.data); process.exit(1); }
+  console.log('Switched to feature-test successfully!');
+
+  console.log('\\n6.6 Committing changes on feature-test...');
+  res = await fetchAPI('/api/git/files/commit', {
+    method: 'POST',
+    body: JSON.stringify({
+      repoName,
+      path: 'test.txt',
+      content: 'Hello World\\nModified in feature branch!',
+      message: 'Feature branch modifications'
+    })
+  });
+  if (res.status !== 200) { console.error('Commit on feature branch failed', res.data); process.exit(1); }
+  console.log('Changes committed to feature-test!');
+
   // 7. Open PR
   console.log('\\n7. Opening Pull Request...');
   res = await fetchAPI('/api/pr', {

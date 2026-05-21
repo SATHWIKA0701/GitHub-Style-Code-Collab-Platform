@@ -190,6 +190,18 @@ export const mergeBranch = async (
     const safeTargetBranch = assertSafeBranchName(targetBranch);
     const git = simpleGit(getRepoPath(repoName, true));
 
+    // Abort any existing unresolved merge/conflict state to clean the index
+    try {
+      await git.merge(["--abort"]);
+    } catch (e) {
+      // Ignore if not in a merge state
+    }
+    try {
+      await git.reset(["--hard", "HEAD"]);
+    } catch (e) {
+      // Ignore
+    }
+
     // checkout target branch first
     await git.checkout(safeTargetBranch);
 
@@ -201,7 +213,22 @@ export const mergeBranch = async (
     }
 
     // merge source branch into target branch
-    return await git.merge([safeSourceBranch]);
+    try {
+      return await git.merge([safeSourceBranch]);
+    } catch (mergeError) {
+      // Abort the failed/conflicted merge so the repository index is not left broken
+      try {
+        await git.merge(["--abort"]);
+      } catch (abortError) {
+        // Ignore abort errors
+      }
+      try {
+        await git.reset(["--hard", "HEAD"]);
+      } catch (resetError) {
+        // Ignore reset errors
+      }
+      throw mergeError;
+    }
   });
 
 export const createBranch = async (repoName, branchName) =>
