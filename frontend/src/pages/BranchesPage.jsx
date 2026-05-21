@@ -21,7 +21,6 @@ export const BranchesPage = () => {
   const load = async () => {
     try {
       const data = await gitApi.branches(repo.name);
-
       setBranches(data || { all: [], current: '' });
     } catch {
       setBranches({ all: [], current: '' });
@@ -49,12 +48,10 @@ export const BranchesPage = () => {
       });
 
       pushToast('Branch created');
-
       setBranchName('');
-
       await load();
     } catch (err) {
-      pushToast(err.message);
+      pushToast(err.response?.data?.message || err.message || 'Failed to create branch');
     } finally {
       setLoading(false);
     }
@@ -70,10 +67,9 @@ export const BranchesPage = () => {
       });
 
       pushToast(`Switched to ${branch}`);
-
       await load();
     } catch (err) {
-      pushToast(err.message);
+      pushToast(err.response?.data?.message || err.message || 'Failed to switch branch');
     } finally {
       setLoading(false);
     }
@@ -99,17 +95,13 @@ export const BranchesPage = () => {
       await gitApi.mergeBranch({
         repoName: repo.name,
         branchName: selected,
-        sourceBranch: selected,
-        targetBranch: current,
       });
 
       pushToast(`Merged ${selected} into ${current}`);
-
       setMergeBranch('');
-
       await load();
     } catch (err) {
-      pushToast(err.message);
+      pushToast(err.response?.data?.message || err.message || 'Failed to merge branch');
     } finally {
       setLoading(false);
     }
@@ -121,10 +113,7 @@ export const BranchesPage = () => {
         <div className="card list-stack">
           <div className="section-header">
             <h3>Branches</h3>
-
-            <span className="pill">
-              current: {branches.current || 'main'}
-            </span>
+            <span className="pill">current: {branches.current || 'main'}</span>
           </div>
 
           {branches.all?.map((branch) => (
@@ -136,17 +125,13 @@ export const BranchesPage = () => {
                 disabled={loading || branch === branches.current}
                 onClick={() => checkoutBranch(branch)}
               >
-                {branch === branches.current
-                  ? 'Current'
-                  : 'Checkout'}
+                {branch === branches.current ? 'Current' : 'Checkout'}
               </button>
             </div>
           ))}
 
           {!branches.all?.length && (
-            <div className="empty-card">
-              No branches found.
-            </div>
+            <div className="empty-card">No branches found.</div>
           )}
         </div>
 
@@ -154,9 +139,7 @@ export const BranchesPage = () => {
           <FormField label="Create branch">
             <input
               value={branchName}
-              onChange={(e) =>
-                setBranchName(e.target.value)
-              }
+              onChange={(e) => setBranchName(e.target.value)}
               placeholder="feature/ui-refresh"
             />
           </FormField>
@@ -175,24 +158,14 @@ export const BranchesPage = () => {
           <FormField label="Merge branch into current">
             <select
               value={mergeBranch}
-              onChange={(e) =>
-                setMergeBranch(e.target.value)
-              }
+              onChange={(e) => setMergeBranch(e.target.value)}
             >
-              <option value="">
-                Select branch to merge
-              </option>
+              <option value="">Select branch to merge</option>
 
               {branches.all
-                ?.filter(
-                  (branch) =>
-                    branch !== branches.current
-                )
+                ?.filter((branch) => branch !== branches.current)
                 .map((branch) => (
-                  <option
-                    key={branch}
-                    value={branch}
-                  >
+                  <option key={branch} value={branch}>
                     {branch}
                   </option>
                 ))}
@@ -203,9 +176,7 @@ export const BranchesPage = () => {
             <button
               type="button"
               className="secondary-button branch-action-button"
-              disabled={
-                loading || !mergeBranch
-              }
+              disabled={loading || !mergeBranch}
               onClick={mergeSelectedBranch}
             >
               Merge
@@ -221,7 +192,6 @@ export const BranchesPage = () => {
 
 const CommitsHint = () => (
   <div className="card subtle">
-    Create branches, switch context, and merge
-    changes directly from the repository view.
+    Create branches, switch context, and merge changes directly from the repository view.
   </div>
 );
