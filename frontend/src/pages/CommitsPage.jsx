@@ -96,67 +96,46 @@ export const CommitsPage = () => {
         />
       )}
 
-      <div className="card list-stack">
-        {commits.map((commit) => (
-          <button
-            key={commit.hash}
-            className="list-row"
-            onClick={() => openCommit(commit)}
-            style={{
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
-          >
-            <div>
-              <strong>
-                {commit.subject || commit.message}
-              </strong>
+      {(selectedBranch || commits.length === 0) && (
+        <div className="card list-stack">
+          {commits.map((commit) => (
+            <button
+              key={commit.hash}
+              className="list-row"
+              onClick={() => openCommit(commit)}
+              style={{
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              <div>
+                <strong>
+                  {commit.subject || commit.message}
+                </strong>
 
-              <p>
-                {commit.authorName || commit.author_name}
-              </p>
+                <p>
+                  {commit.authorName || commit.author_name}
+                </p>
 
-              <small>
-                {(commit.shortHash || commit.hash?.slice(0, 7)) ?? ''}
-              </small>
+                <small>
+                  {(commit.shortHash || commit.hash?.slice(0, 7)) ?? ''}
+                </small>
+              </div>
+
+              <span>
+                {new Date(commit.date).toLocaleString()}
+              </span>
+            </button>
+          ))}
+
+          {!commits.length && (
+            <div className="empty-card">
+              No commits yet.
             </div>
-
-            <span>
-              {new Date(commit.date).toLocaleString()}
-            </span>
-          </button>
-        ))}
-
-        {!commits.length && (
-          <div className="empty-card">
-            No commits yet.
-          </div>
-        )}
-      </div>
-
-      {!selectedBranch && (
-        <div className="button-row">
-          <button
-            className="secondary-button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Previous
-          </button>
-
-          <span>
-            Page {page} of {totalPages}
-          </span>
-
-          <button
-            className="secondary-button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
+          )}
         </div>
       )}
+
 
       {selectedCommit && (
         <div className="card stack-md">

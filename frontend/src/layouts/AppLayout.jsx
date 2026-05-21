@@ -158,13 +158,6 @@ export const AppLayout = () => {
               </span>
             </NavLink>
 
-            <NavLink to="/profile">
-              Profile
-            </NavLink>
-
-            <NavLink to="/settings">
-              Settings
-            </NavLink>
           </nav>
 
           <div className="top-user">

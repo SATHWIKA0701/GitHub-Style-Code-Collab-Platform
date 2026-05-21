@@ -1,50 +1,33 @@
-export const CommitGraph = ({ commits }) => {
-  if (!commits?.length) return null;
-
+export const CommitGraph = ({ commits = [] }) => {
   return (
     <div className="card commit-graph-card">
       <div className="section-header">
         <h3>Commit graph</h3>
       </div>
 
-      <div className="commit-graph-wrapper">
-        {commits.map((commit, index) => (
-          <div
-            key={commit.hash}
-            className="commit-graph-item"
-          >
-            {/* Timeline */}
-            <div className="commit-line-section">
-              <div className="commit-dot" />
-
-              {index !== commits.length - 1 && (
+      {commits.length === 0 ? (
+        <div className="empty-state">No commit graph data available.</div>
+      ) : (
+        <div className="commit-graph-wrapper">
+          {commits.map((commit) => (
+            <div className="commit-graph-item" key={commit.hash}>
+              <div className="commit-line-section">
+                <div className="commit-dot" />
                 <div className="commit-line" />
-              )}
-            </div>
-
-            {/* Commit Card */}
-            <div className="commit-content">
-              <h4 className="commit-message">
-                {commit.message}
-              </h4>
-
-              <div className="commit-meta">
-                <span>{commit.author}</span>
-
-                <span>
-                  {new Date(
-                    commit.date
-                  ).toLocaleString()}
-                </span>
               </div>
 
-              <div className="commit-hash">
-                {(commit.hash || "").slice(0, 7)}
+              <div className="commit-content">
+                <p className="commit-message">{commit.message || 'Untitled commit'}</p>
+                <div className="commit-meta">
+                  <span>{commit.author || 'Unknown author'}</span>
+                  <span className="commit-hash">{commit.hash?.slice(0, 7) || ''}</span>
+                </div>
+                <small>{commit.date ? new Date(commit.date).toLocaleString() : ''}</small>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

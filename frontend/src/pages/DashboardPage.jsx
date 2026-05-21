@@ -26,6 +26,17 @@ export const DashboardPage = () => {
         <Link to="/repositories/new" className="primary-button">New repository</Link>
       </section>
       <div className="dashboard-grid">
+        <section className="card dashboard-profile-card">
+          <div className="dashboard-avatar">{user?.username?.slice(0, 2).toUpperCase()}</div>
+          <div className="stack-sm">
+            <h2>{user?.username}</h2>
+            <p>{user?.email}</p>
+          </div>
+          <Link to="/profile" className="primary-button">
+            Edit profile
+          </Link>
+        </section>
+
         <section className="card">
           <div className="section-header"><h3>Recent repositories</h3><Link to="/repositories">View all</Link></div>
           <div className="list-stack">
@@ -37,7 +48,6 @@ export const DashboardPage = () => {
             )) : <div className="empty-card">No repositories yet.</div>}
           </div>
         </section>
-  
       </div>
     </div>
   );
