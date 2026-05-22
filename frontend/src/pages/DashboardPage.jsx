@@ -27,7 +27,29 @@ export const DashboardPage = () => {
       </section>
       <div className="dashboard-grid">
         <section className="card dashboard-profile-card">
-          <div className="dashboard-avatar">{user?.username?.slice(0, 2).toUpperCase()}</div>
+          <div className={`dashboard-avatar ${user?.avatar ? `avatar-${user.avatar}` : ''}`}>
+            <div className="avatar-preview">
+              {user?.avatar === '1' && <span className="animal-emoji">🐰</span>}
+              {user?.avatar === '2' && <span className="animal-emoji">🐸</span>}
+              {user?.avatar === '3' && <span className="animal-emoji">🐳</span>}
+              {user?.avatar === '4' && <span className="animal-emoji">🐶</span>}
+              {user?.avatar === '5' && <span className="animal-emoji">🦖</span>}
+              {!user?.avatar && (
+                <div className="avatar-person">
+                  <div className="avatar-ear left" />
+                  <div className="avatar-ear right" />
+                  <div className="avatar-head">
+                    <div className="avatar-eye left" />
+                    <div className="avatar-eye right" />
+                    <div className="avatar-cheek left" />
+                    <div className="avatar-cheek right" />
+                    <div className="avatar-nose" />
+                    <div className="avatar-mouth" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="stack-sm">
             <h2>{user?.username}</h2>
             <p>{user?.email}</p>

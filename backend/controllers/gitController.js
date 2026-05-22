@@ -137,23 +137,48 @@ export const switchBranch = asyncHandler(async (req, res) => {
 });
 
 export const mergeBranch = asyncHandler(async (req, res) => {
-  const { repoName, branchName, sourceBranch } = req.body;
+  const { repoName } = req.body;
+
+  const branchName =
+    typeof req.body.branchName === 'string'
+      ? req.body.branchName.trim()
+      : '';
+  const sourceBranch =
+    typeof req.body.sourceBranch === 'string'
+      ? req.body.sourceBranch.trim()
+      : '';
+  const targetBranch =
+    typeof req.body.targetBranch === 'string'
+      ? req.body.targetBranch.trim()
+      : '';
 
   const selectedBranch = branchName || sourceBranch;
+  const effectiveTargetBranch =
+    targetBranch || (await gitService.getCurrentBranch(repoName));
 
   if (!repoName) {
     return res.status(400).json({
-      message: "repoName is required",
+      message: 'repoName is required',
     });
   }
 
   if (!selectedBranch) {
     return res.status(400).json({
-      message: "branchName is required",
+      message: 'sourceBranch is required',
     });
   }
 
-  const result = await gitService.mergeBranch(repoName, selectedBranch);
+  if (!effectiveTargetBranch) {
+    return res.status(400).json({
+      message: 'targetBranch is required',
+    });
+  }
+
+  const result = await gitService.mergeBranch(
+    repoName,
+    selectedBranch,
+    effectiveTargetBranch
+  );
 
   cache.del(`commits:${repoName}:1:20`);
   cache.del(`branches:${repoName}`);

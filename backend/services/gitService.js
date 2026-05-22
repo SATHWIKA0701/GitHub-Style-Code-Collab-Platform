@@ -280,6 +280,11 @@ export const getBranches = async (repoName) => {
   return await git.branch();
 };
 
+export const getCurrentBranch = async (repoName) => {
+  const branchInfo = await getBranches(repoName);
+  return branchInfo?.current || null;
+};
+
 export const getCommitGraph = async (repoName) => {
   const git = simpleGit(getRepoPath(repoName, true));
   return await git.raw(["log", "--graph", "--oneline", "--all"]);

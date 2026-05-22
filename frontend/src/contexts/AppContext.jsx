@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { useAuth } from "./AuthContext";
 import { notificationApi } from "../api/services";
 
 const AppContext = createContext(null);
@@ -26,6 +27,8 @@ export const AppProvider = ({
 
   const [notifications, setNotifications] =
     useState([]);
+
+  const { user, ready } = useAuth();
 
   const pushToast = (
     message,
@@ -90,8 +93,13 @@ export const AppProvider = ({
   };
 
   useEffect(() => {
-    refreshUnreadNotifications();
-  }, []);
+    if (ready && user) {
+      refreshUnreadNotifications();
+      return;
+    }
+
+    setUnreadNotifications(0);
+  }, [ready, user]);
 
   const value = useMemo(
     () => ({

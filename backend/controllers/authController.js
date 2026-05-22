@@ -21,12 +21,13 @@ const toSafeUser = (user) => ({
   id: user._id,
   username: user.username,
   email: user.email,
+  avatar: user.avatar || '',
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
 
 export const register = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, avatar } = req.body;
 
   try {
     if (!username || typeof username !== "string") {
@@ -56,6 +57,7 @@ export const register = asyncHandler(async (req, res) => {
       username: username.trim(),
       email: email.toLowerCase(),
       password: hashedPassword,
+      avatar: typeof avatar === 'string' ? avatar : '',
     });
 
     res.status(201).json({ message: "User registered", user: toSafeUser(user) });
@@ -103,7 +105,7 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { username, email, currentPassword, newPassword } = req.body || {};
+  const { username, email, currentPassword, newPassword, avatar } = req.body || {};
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -121,6 +123,13 @@ export const updateProfile = asyncHandler(async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } });
     if (existing) return res.status(409).json({ message: "Email already in use" });
     user.email = email.toLowerCase();
+  }
+
+  if (avatar !== undefined) {
+    if (typeof avatar !== 'string' || avatar.length > 64) {
+      return res.status(400).json({ message: 'Avatar value is invalid' });
+    }
+    user.avatar = avatar;
   }
 
   if (newPassword !== undefined) {

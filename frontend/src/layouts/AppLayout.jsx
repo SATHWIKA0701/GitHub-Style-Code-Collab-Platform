@@ -85,11 +85,21 @@ export const AppLayout = () => {
     <div className="app-layout">
       <header className="topbar">
         <div className="topbar-inner">
-          <Link
-            to="/dashboard"
-            className="brand"
-          >
-            code-collab-platform
+          <Link to="/dashboard" className="brand" aria-label="KITHUB">
+            <img
+              src="/kitublogo.png"
+              alt="KITHUB logo"
+              className="brand-logo-img"
+              onError={(e) => {
+                const el = e.currentTarget;
+                if (el.src && el.src.endsWith('.png')) {
+                  el.src = '/kitub-cat.svg';
+                } else {
+                  el.style.display = 'none';
+                }
+              }}
+            />
+            <span className="brand-text">KITHUB</span>
           </Link>
 
           <nav className="top-nav">
@@ -161,14 +171,17 @@ export const AppLayout = () => {
           </nav>
 
           <div className="top-user">
-            <span>
-              {user?.username}
-            </span>
+            <Link to="/profile" className="profile-link">
+              <div className={`nav-avatar ${user?.avatar ? `avatar-${user.avatar}` : ''}`}>
+                {user?.avatar === '1' && <span className="animal-emoji">🐰</span>}
+                {user?.avatar === '2' && <span className="animal-emoji">🐸</span>}
+                {user?.avatar === '3' && <span className="animal-emoji">🐳</span>}
+                {user?.avatar === '4' && <span className="animal-emoji">🐶</span>}
+                {user?.avatar === '5' && <span className="animal-emoji">🦖</span>}
+              </div>
+            </Link>
 
-            <button
-              className="ghost-button"
-              onClick={handleLogout}
-            >
+            <button className="logout-button" onClick={handleLogout}>
               Logout
             </button>
           </div>

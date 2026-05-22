@@ -95,6 +95,8 @@ export const BranchesPage = () => {
       await gitApi.mergeBranch({
         repoName: repo.name,
         branchName: selected,
+        sourceBranch: selected,
+        targetBranch: current,
       });
 
       pushToast(`Merged ${selected} into ${current}`);

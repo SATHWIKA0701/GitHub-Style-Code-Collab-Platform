@@ -9,6 +9,8 @@ export const ProfilePage = () => {
   const { user, refreshProfile } = useAuth();
   const { pushToast } = useApp();
   const [profileForm, setProfileForm] = useState({ username: '', email: '' });
+  const avatarOptions = ['1', '2', '3', '4', '5'];
+  const [selectedAvatar, setSelectedAvatar] = useState('');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '' });
 
   useEffect(() => {
@@ -16,13 +18,16 @@ export const ProfilePage = () => {
       setProfileForm({
         username: user.username || '',
         email: user.email || '',
+        avatar: user.avatar || '',
       });
+      setSelectedAvatar(user.avatar || '');
     }
   }, [user]);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    await authApi.updateProfile(profileForm);
+    const payload = { ...profileForm, avatar: selectedAvatar || profileForm.avatar };
+    await authApi.updateProfile(payload);
     await refreshProfile();
     pushToast('Profile updated');
   };
@@ -37,7 +42,29 @@ export const ProfilePage = () => {
   return (
     <div className="stack-md">
       <div className="card profile-card">
-        <div className="avatar">{user?.username?.slice(0, 2).toUpperCase()}</div>
+        <div className={`profile-avatar ${selectedAvatar ? `avatar-${selectedAvatar}` : ''}`}>
+          <div className="avatar-preview">
+            {selectedAvatar === '1' && <span className="animal-emoji">🐰</span>}
+            {selectedAvatar === '2' && <span className="animal-emoji">🐸</span>}
+            {selectedAvatar === '3' && <span className="animal-emoji">🐳</span>}
+            {selectedAvatar === '4' && <span className="animal-emoji">🐶</span>}
+            {selectedAvatar === '5' && <span className="animal-emoji">🦖</span>}
+            {!selectedAvatar && (
+              <div className="avatar-person">
+                <div className="avatar-ear left" />
+                <div className="avatar-ear right" />
+                <div className="avatar-head">
+                  <div className="avatar-eye left" />
+                  <div className="avatar-eye right" />
+                  <div className="avatar-cheek left" />
+                  <div className="avatar-cheek right" />
+                  <div className="avatar-nose" />
+                  <div className="avatar-mouth" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="stack-sm">
           <h1>{user?.username}</h1>
           <p>{user?.email}</p>
@@ -64,6 +91,25 @@ export const ProfilePage = () => {
               onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
             />
           </FormField>
+
+            <FormField label="Avatar">
+              <div className="avatar-grid">
+                  {avatarOptions.map((opt) => {
+                    const emoji = opt === '1' ? '🐰' : opt === '2' ? '🐸' : opt === '3' ? '🐳' : opt === '4' ? '🐶' : '🦖';
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        className={`avatar-option ${selectedAvatar === opt ? 'selected' : ''} avatar-${opt}`}
+                        onClick={() => setSelectedAvatar(opt)}
+                        aria-pressed={selectedAvatar === opt}
+                      >
+                        <span className="animal-emoji">{emoji}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+            </FormField>
           <button className="primary-button">Save profile</button>
         </form>
 
